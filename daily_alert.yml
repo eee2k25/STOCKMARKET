@@ -1,0 +1,31 @@
+name: Daily Indian Market Downturn & Dip Monitor
+
+on:
+  schedule:
+    # 4:00 PM IST (10:30 AM UTC) every Monday through Friday
+    - cron: '30 10 * * 1-5'
+  workflow_dispatch: # Allows manual one-click trigger
+
+jobs:
+  run-market-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        run: |
+          pip install requests yfinance pandas tabulate
+
+      - name: Run Advisory Engine & Dispatch Email
+        env:
+          SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
+          SENDER_APP_PASSWORD: ${{ secrets.SENDER_APP_PASSWORD }}
+          RECIPIENT_EMAIL: "meksmod1@gmail.com"
+        run: |
+          python send_email.py
