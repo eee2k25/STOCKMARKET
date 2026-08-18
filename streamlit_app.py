@@ -1,4 +1,4 @@
-# streamlit_app.py - Simplified Version (No pandas-ta dependency)
+# streamlit_app.py - Fixed & Working Version
 import streamlit as st
 import yfinance as yf
 import pandas as pd
@@ -41,11 +41,9 @@ class MarketUtils:
         ist = pytz.timezone('Asia/Kolkata')
         now = datetime.now(ist)
         
-        # Check if weekday
-        if now.weekday() >= 5:  # Saturday or Sunday
+        if now.weekday() >= 5:
             return False
         
-        # Check market hours (9:15 AM to 3:30 PM IST)
         market_open = now.replace(hour=9, minute=15, second=0)
         market_close = now.replace(hour=15, minute=30, second=0)
         
@@ -63,9 +61,9 @@ class MarketUtils:
     @staticmethod
     def format_inr(value):
         """Format number in Indian numbering system"""
-        if value >= 10000000:  # 1 Crore
+        if value >= 10000000:
             return f"₹{value/10000000:.2f} Cr"
-        elif value >= 100000:  # 1 Lakh
+        elif value >= 100000:
             return f"₹{value/100000:.2f} L"
         else:
             return f"₹{value:,.2f}"
@@ -74,7 +72,7 @@ class IndianMarketData:
     """Fetch Indian market data"""
     
     @staticmethod
-    @st.cache_data(ttl=300)  # Cache for 5 minutes
+    @st.cache_data(ttl=300)
     def get_mutual_fund_nav(amfi_code):
         """Fetch NAV from AMFI"""
         try:
@@ -92,7 +90,7 @@ class IndianMarketData:
             return None
     
     @staticmethod
-    @st.cache_data(ttl=60)  # Cache for 1 minute
+    @st.cache_data(ttl=60)
     def get_stock_data(symbol, period='1mo'):
         """Fetch stock data with caching"""
         try:
@@ -104,7 +102,7 @@ class IndianMarketData:
             return None, None
 
 class TechnicalIndicators:
-    """Simple technical indicators (no pandas-ta needed)"""
+    """Simple technical indicators"""
     
     @staticmethod
     def calculate_sma(data, window):
@@ -141,7 +139,6 @@ def render_header():
         </div>
     """, unsafe_allow_html=True)
     
-    # Status Bar
     col1, col2, col3, col4 = st.columns(4)
     
     status_text, is_open = MarketUtils.get_market_status()
@@ -165,7 +162,6 @@ def render_header():
         """, unsafe_allow_html=True)
     
     with col3:
-        # Fetch Nifty 50
         nifty_data, _ = IndianMarketData.get_stock_data('^NSEI', '1d')
         if nifty_data is not None and len(nifty_data) > 0:
             nifty_price = nifty_data['Close'].iloc[-1]
@@ -210,17 +206,15 @@ def render_sidebar():
         
         st.markdown("---")
         
-        # Quick Actions
         st.markdown("### ⚡ Quick Actions")
         
-        if st.button("🔄 Refresh Data", use_container_width=True):
+        if st.button("🔄 Refresh Data", key="refresh_btn"):
             st.cache_data.clear()
             st.success("✅ Data Refreshed!")
             st.rerun()
         
         st.markdown("---")
         
-        # Footer
         st.caption(f"v{AppConfig.VERSION}")
         st.caption(f"By {AppConfig.AUTHOR}")
         
@@ -232,7 +226,6 @@ def render_dashboard():
     """Main dashboard"""
     st.title("🏠 Market Dashboard")
     
-    # Mutual Funds Overview
     st.subheader("💰 Your Mutual Funds")
     
     mf_data = []
@@ -249,13 +242,12 @@ def render_dashboard():
     
     if mf_data:
         df = pd.DataFrame(mf_data)
-        st.dataframe(df, use_container_width=True, hide_index=True)
+        st.dataframe(df, hide_index=True)
     else:
         st.warning("Unable to fetch mutual fund data. Please try again.")
     
     st.markdown("---")
     
-    # Recent Alerts
     st.subheader("🔔 Recent Alerts")
     
     if st.session_state.alerts:
@@ -272,19 +264,16 @@ def render_indian_markets():
     """Indian markets view"""
     st.title("🇮🇳 Indian Markets")
     
-    # Nifty 50 Index
     st.subheader("📊 NIFTY 50 Performance")
     
     df, info = IndianMarketData.get_stock_data('^NSEI', '1mo')
     
     if df is not None and len(df) > 0:
-        # Calculate indicators
         df['SMA_20'] = TechnicalIndicators.calculate_sma(df['Close'], 20)
         df['SMA_50'] = TechnicalIndicators.calculate_sma(df['Close'], 50)
         df['RSI'] = TechnicalIndicators.calculate_rsi(df['Close'])
         df['BB_Upper'], df['BB_Middle'], df['BB_Lower'] = TechnicalIndicators.calculate_bollinger_bands(df['Close'])
         
-        # Create chart
         fig = make_subplots(
             rows=2, cols=1,
             shared_xaxes=True,
@@ -293,7 +282,184 @@ def render_indian_markets():
             row_heights=[0.7, 0.3]
         )
         
-        # Candlestick
-        fig.add_trace(go.Candlestick(
-            x=df.index,
+        # FIXED: Properly closed parenthesis
+        fig.add_trace(
+            go.Candlestick(
+                x=df.index,
+                open=df['Open'],
+                high=df['High'],
+                low=df['Low'],
+                close=df['Close'],
+                name='NIFTY 50'
+            ), 
+            row=1, col=1
+        )
+        
+        fig.add_trace(
+            go.Scatter(
+                x=df.index,
+                y=df['SMA_20'],
+                name='SMA 20',
+                line=dict(color='orange', width=1)
+            ), 
+            row=1, col=1
+        )
+        
+        fig.add_trace(
+            go.Scatter(
+                x=df.index,
+                y=df['SMA_50'],
+                name='SMA 50',
+                line=dict(color='blue', width=1)
+            ), 
+            row=1, col=1
+        )
+        
+        fig.add_trace(
+            go.Scatter(
+                x=df.index,
+                y=df['BB_Upper'],
+                name='BB Upper',
+                line=dict(color='gray', width=1, dash='dash')
+            ), 
+            row=1, col=1
+        )
+        
+        fig.add_trace(
+            go.Scatter(
+                x=df.index,
+                y=df['BB_Lower'],
+                name='BB Lower',
+                line=dict(color='gray', width=1, dash='dash'),
+                fill='tonexty'
+            ), 
+            row=1, col=1
+        )
+        
+        fig.add_trace(
+            go.Scatter(
+                x=df.index,
+                y=df['RSI'],
+                name='RSI',
+                line=dict(color='purple', width=2)
+            ), 
+            row=2, col=1
+        )
+        
+        fig.add_hline(y=70, line_dash="dash", line_color="red", row=2, col=1)
+        fig.add_hline(y=30, line_dash="dash", line_color="green", row=2, col=1)
+        
+        fig.update_layout(
+            height=700,
+            template='plotly_dark',
+            xaxis_rangeslider_visible=False
+        )
+        
+        st.plotly_chart(fig)
+        
+        col1, col2, col3, col4 = st.columns(4)
+        
+        current_price = df['Close'].iloc[-1]
+        day_high = df['High'].iloc[-1]
+        day_low = df['Low'].iloc[-1]
+        rsi_value = df['RSI'].iloc[-1]
+        
+        with col1:
+            st.metric("Current", f"{current_price:.2f}")
+        with col2:
+            st.metric("Day High", f"{day_high:.2f}")
+        with col3:
+            st.metric("Day Low", f"{day_low:.2f}")
+        with col4:
+            st.metric("RSI", f"{rsi_value:.2f}")
+
+def render_mutual_funds():
+    """Detailed mutual funds view"""
+    st.title("💎 Mutual Funds Analysis")
+    
+    for fund in AppConfig.TRACKED_MUTUAL_FUNDS:
+        with st.expander(f"📁 {fund['name']}"):
+            nav_data = IndianMarketData.get_mutual_fund_nav(fund['amfi'])
             
+            if nav_data:
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    st.metric("Current NAV", f"₹{nav_data['nav']:.2f}")
+                with col2:
+                    st.metric("Category", fund['category'])
+                with col3:
+                    st.metric("Rating", '⭐' * fund['rating'])
+                
+                st.caption(f"Last Updated: {nav_data['date']}")
+            else:
+                st.warning("Unable to fetch data")
+
+def render_stock_scanner():
+    """Stock scanner"""
+    st.title("📊 Stock Scanner")
+    
+    st.subheader("🔍 Nifty 100 Scanner")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        min_drop = st.slider("Minimum Drop %", 0.0, 10.0, 2.0, 0.5)
+    with col2:
+        sort_by = st.selectbox("Sort By", ["Drop %", "Volume", "Price"])
+    
+    if st.button("🚀 Scan Now", key="scan_btn"):
+        with st.spinner("Scanning stocks..."):
+            scan_results = []
+            
+            for symbol in AppConfig.NIFTY_100_STOCKS[:10]:
+                df, info = IndianMarketData.get_stock_data(symbol, '1d')
+                
+                if df is not None and len(df) > 0:
+                    current_price = df['Close'].iloc[-1]
+                    open_price = df['Open'].iloc[-1]
+                    change_pct = ((current_price - open_price) / open_price) * 100
+                    
+                    if change_pct <= -min_drop:
+                        scan_results.append({
+                            'Symbol': symbol.replace('.NS', ''),
+                            'Price': f"₹{current_price:.2f}",
+                            'Change %': f"{change_pct:.2f}%",
+                            'Volume': f"{df['Volume'].iloc[-1]/1e6:.2f}M"
+                        })
+            
+            if scan_results:
+                st.success(f"✅ Found {len(scan_results)} opportunities!")
+                st.dataframe(pd.DataFrame(scan_results), hide_index=True)
+            else:
+                st.info("No stocks matching criteria found")
+
+def render_portfolio():
+    """Portfolio tracker"""
+    st.title("💼 Portfolio Tracker")
+    
+    tab1, tab2 = st.tabs(["📊 Holdings", "➕ Add Stock"])
+    
+    with tab1:
+        if st.session_state.portfolio:
+            portfolio_df = pd.DataFrame(st.session_state.portfolio)
+            st.dataframe(portfolio_df, hide_index=True)
+        else:
+            st.info("Your portfolio is empty. Add stocks from the 'Add Stock' tab.")
+    
+    with tab2:
+        st.subheader("Add New Stock")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            symbol = st.text_input("Stock Symbol (e.g., RELIANCE.NS)")
+            shares = st.number_input("Number of Shares", 1, 10000, 10)
+        
+        with col2:
+            buy_price = st.number_input("Buy Price (₹)", 1.0, 100000.0, 100.0)
+            buy_date = st.date_input("Purchase Date")
+        
+        if st.button("➕ Add to Portfolio", key="add_portfolio_btn"):
+            st.session_state.portfolio.append({
+                
