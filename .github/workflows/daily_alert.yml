@@ -1,0 +1,37 @@
+name: Automated Intraday Nifty 100 & Mutual Fund Monitor
+
+on:
+  schedule:
+    # 1. Market Open: 9:05 AM IST (03:35 UTC Mon-Fri)
+    - cron: '35 3 * * 1-5'
+    # 2. Midday Flash Opportunity Scan: 12:30 PM IST (07:00 UTC Mon-Fri)
+    - cron: '0 7 * * 1-5'
+    # 3. Market Close Wrap: 3:45 PM IST (10:15 UTC Mon-Fri)
+    - cron: '15 10 * * 1-5'
+  workflow_dispatch: # Manual 1-click trigger
+
+jobs:
+  run-market-scanner:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        run: |
+          pip install requests yfinance pandas tabulate
+
+      - name: Run Market Alert Engine
+        env:
+          SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
+          SENDER_APP_PASSWORD: ${{ secrets.SENDER_APP_PASSWORD }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          RECIPIENT_EMAIL: "meksmod1@gmail.com"
+        run: |
+          python market_alert_runner.py
