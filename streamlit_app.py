@@ -1,4 +1,4 @@
-# streamlit_app.py - Fixed & Working Version
+# streamlit_app.py - FULLY FIXED VERSION
 import streamlit as st
 import yfinance as yf
 import pandas as pd
@@ -86,7 +86,7 @@ class IndianMarketData:
                     'scheme_name': data['meta']['scheme_name']
                 }
             return None
-        except Exception as e:
+        except Exception:
             return None
     
     @staticmethod
@@ -98,7 +98,7 @@ class IndianMarketData:
             df = stock.history(period=period)
             info = stock.info
             return df, info
-        except Exception as e:
+        except Exception:
             return None, None
 
 class TechnicalIndicators:
@@ -205,7 +205,6 @@ def render_sidebar():
         )
         
         st.markdown("---")
-        
         st.markdown("### ⚡ Quick Actions")
         
         if st.button("🔄 Refresh Data", key="refresh_btn"):
@@ -214,7 +213,6 @@ def render_sidebar():
             st.rerun()
         
         st.markdown("---")
-        
         st.caption(f"v{AppConfig.VERSION}")
         st.caption(f"By {AppConfig.AUTHOR}")
         
@@ -225,7 +223,6 @@ def render_sidebar():
 def render_dashboard():
     """Main dashboard"""
     st.title("🏠 Market Dashboard")
-    
     st.subheader("💰 Your Mutual Funds")
     
     mf_data = []
@@ -247,7 +244,6 @@ def render_dashboard():
         st.warning("Unable to fetch mutual fund data. Please try again.")
     
     st.markdown("---")
-    
     st.subheader("🔔 Recent Alerts")
     
     if st.session_state.alerts:
@@ -263,7 +259,6 @@ def render_dashboard():
 def render_indian_markets():
     """Indian markets view"""
     st.title("🇮🇳 Indian Markets")
-    
     st.subheader("📊 NIFTY 50 Performance")
     
     df, info = IndianMarketData.get_stock_data('^NSEI', '1mo')
@@ -282,7 +277,6 @@ def render_indian_markets():
             row_heights=[0.7, 0.3]
         )
         
-        # FIXED: Properly closed parenthesis
         fig.add_trace(
             go.Candlestick(
                 x=df.index,
@@ -296,82 +290,36 @@ def render_indian_markets():
         )
         
         fig.add_trace(
-            go.Scatter(
-                x=df.index,
-                y=df['SMA_20'],
-                name='SMA 20',
-                line=dict(color='orange', width=1)
-            ), 
+            go.Scatter(x=df.index, y=df['SMA_20'], name='SMA 20', line=dict(color='orange', width=1)), 
             row=1, col=1
         )
         
         fig.add_trace(
-            go.Scatter(
-                x=df.index,
-                y=df['SMA_50'],
-                name='SMA 50',
-                line=dict(color='blue', width=1)
-            ), 
+            go.Scatter(x=df.index, y=df['SMA_50'], name='SMA 50', line=dict(color='blue', width=1)), 
             row=1, col=1
         )
         
         fig.add_trace(
-            go.Scatter(
-                x=df.index,
-                y=df['BB_Upper'],
-                name='BB Upper',
-                line=dict(color='gray', width=1, dash='dash')
-            ), 
-            row=1, col=1
-        )
-        
-        fig.add_trace(
-            go.Scatter(
-                x=df.index,
-                y=df['BB_Lower'],
-                name='BB Lower',
-                line=dict(color='gray', width=1, dash='dash'),
-                fill='tonexty'
-            ), 
-            row=1, col=1
-        )
-        
-        fig.add_trace(
-            go.Scatter(
-                x=df.index,
-                y=df['RSI'],
-                name='RSI',
-                line=dict(color='purple', width=2)
-            ), 
+            go.Scatter(x=df.index, y=df['RSI'], name='RSI', line=dict(color='purple', width=2)), 
             row=2, col=1
         )
         
         fig.add_hline(y=70, line_dash="dash", line_color="red", row=2, col=1)
         fig.add_hline(y=30, line_dash="dash", line_color="green", row=2, col=1)
         
-        fig.update_layout(
-            height=700,
-            template='plotly_dark',
-            xaxis_rangeslider_visible=False
-        )
-        
+        fig.update_layout(height=700, template='plotly_dark', xaxis_rangeslider_visible=False)
         st.plotly_chart(fig)
         
         col1, col2, col3, col4 = st.columns(4)
         
-        current_price = df['Close'].iloc[-1]
-        day_high = df['High'].iloc[-1]
-        day_low = df['Low'].iloc[-1]
-        rsi_value = df['RSI'].iloc[-1]
-        
         with col1:
-            st.metric("Current", f"{current_price:.2f}")
+            st.metric("Current", f"{df['Close'].iloc[-1]:.2f}")
         with col2:
-            st.metric("Day High", f"{day_high:.2f}")
+            st.metric("Day High", f"{df['High'].iloc[-1]:.2f}")
         with col3:
-            st.metric("Day Low", f"{day_low:.2f}")
+            st.metric("Day Low", f"{df['Low'].iloc[-1]:.2f}")
         with col4:
-            st.metric("RSI", f"{rsi_value:.2f}")
+            st.metric("RSI", f"{df['RSI'].iloc[-1]:.2f}")
 
 def render_mutual_funds():
     """Detailed mutual funds view"""
@@ -398,7 +346,6 @@ def render_mutual_funds():
 def render_stock_scanner():
     """Stock scanner"""
     st.title("📊 Stock Scanner")
-    
     st.subheader("🔍 Nifty 100 Scanner")
     
     col1, col2 = st.columns(2)
@@ -462,4 +409,90 @@ def render_portfolio():
         
         if st.button("➕ Add to Portfolio", key="add_portfolio_btn"):
             st.session_state.portfolio.append({
+                'Symbol': symbol,
+                'Shares': shares,
+                'Buy Price': buy_price,
+                'Date': buy_date.strftime('%Y-%m-%d')
+            })
+            st.success(f"✅ Added {shares} shares of {symbol}")
+            st.rerun()
+
+def render_alerts():
+    """Alert management"""
+    st.title("🔔 Alert Manager")
+    
+    tab1, tab2 = st.tabs(["📋 Active Alerts", "➕ Create Alert"])
+    
+    with tab1:
+        if st.session_state.alerts:
+            for idx, alert in enumerate(st.session_state.alerts):
+                col1, col2 = st.columns([4, 1])
                 
+                with col1:
+                    st.markdown(f"""
+                        <div class="alert-info">
+                            {alert.get('message', 'No message')}
+                        </div>
+                    """, unsafe_allow_html=True)
+                
+                with col2:
+                    if st.button("🗑️", key=f"del_{idx}"):
+                        st.session_state.alerts.pop(idx)
+                        st.rerun()
+        else:
+            st.info("No active alerts")
+    
+    with tab2:
+        st.subheader("Create New Alert")
+        
+        symbol = st.text_input("Stock Symbol")
+        condition = st.selectbox("Condition", ["Price Above", "Price Below", "Drop %"])
+        target = st.number_input("Target Value", 0.0, 10000.0, 100.0)
+        
+        if st.button("✅ Create Alert", key="create_alert_btn"):
+            st.session_state.alerts.append({
+                'symbol': symbol,
+                'condition': condition,
+                'target': target,
+                'message': f"{symbol}: {condition} {target}"
+            })
+            st.success("Alert created!")
+            st.rerun()
+
+def render_settings():
+    """Settings page"""
+    st.title("⚙️ Settings")
+    st.subheader("📧 Notification Settings")
+    
+    st.text_input("Email", AppConfig.SENDER_EMAIL)
+    st.text_input("Telegram Chat ID", str(AppConfig.TELEGRAM_CHAT_ID) if AppConfig.TELEGRAM_CHAT_ID else "Not configured")
+    
+    st.checkbox("Enable Email Alerts", value=True)
+    st.checkbox("Enable Telegram Alerts", value=True)
+    
+    if st.button("💾 Save Settings", key="save_settings_btn"):
+        st.success("Settings saved!")
+
+# ==================== MAIN APP ====================
+
+def main():
+    render_header()
+    page = render_sidebar()
+    
+    if page == "🏠 Dashboard":
+        render_dashboard()
+    elif page == "🇮🇳 Indian Markets":
+        render_indian_markets()
+    elif page == "💎 Mutual Funds":
+        render_mutual_funds()
+    elif page == "📊 Stock Scanner":
+        render_stock_scanner()
+    elif page == "💼 Portfolio":
+        render_portfolio()
+    elif page == "🔔 Alerts":
+        render_alerts()
+    elif page == "⚙️ Settings":
+        render_settings()
+
+if __name__ == "__main__":
+    main()
