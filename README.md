@@ -3,7 +3,7 @@
 
 Personalized monitoring and dip-buying investment advisory engine calibrated for **Moderate Risk Profile**.
 
-- **Recipient Email:** `meksmod1@gmail.com`
+- **Recipient Email:** `your mail id`
 - **Tracked Mutual Funds:** 9 Schemes (from your Groww Watchlist)
 - **Tracked Equities:** Top Nifty 50 Blue-Chip Leaders
 - **Live AMFI NAV & NSE Data Feeds**
@@ -34,7 +34,7 @@ python send_email.py
 3. Add:
    - `SENDER_EMAIL`: Your Gmail address.
    - `SENDER_APP_PASSWORD`: A 16-character Google App Password (generated in Google Account > Security > 2-Step Verification > App Passwords).
-4. GitHub will automatically run the scan every trading day at 4:00 PM IST and email your personalized analysis to `meksmod1@gmail.com`.
+4. GitHub will automatically run the scan every trading day at 4:00 PM IST and email your personalized analysis to `your mail id`.
 
 ### Option 2: Free Web App on Render / Streamlit Cloud / PythonAnywhere
 - Connect the GitHub repository to **Render.com** (Free Web Service) or **Streamlit Community Cloud**.
