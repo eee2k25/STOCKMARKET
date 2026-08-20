@@ -1,498 +1,206 @@
-# streamlit_app.py - FULLY FIXED VERSION
-import streamlit as st
-import yfinance as yf
-import pandas as pd
-import numpy as np
-import plotly.graph_objects as go
-from plotly.subplots import make_subplots
-from datetime import datetime, timedelta
-import requests
-from config import AppConfig
-from styles import load_custom_css
+# streamlit_app.py — Streamlit front-end for MEK Stock Alert Pro.
+# The Dashboard page embeds the exact same interactive cream/gold/red
+# dashboard served by app.py (crosshair hover tooltips included), with the
+# market snapshot injected directly — no backend needed.
+
+import datetime
+
 import pytz
+import streamlit as st
+import streamlit.components.v1 as components
+
+from styles import load_custom_css
+from market_data import collect_market_data, load_config
+from dashboard_embed import build_embed_html
+import nifty100_intraday_scanner as scanner
 
 # Page Configuration
 st.set_page_config(
-    page_title=f"{AppConfig.APP_NAME} v{AppConfig.VERSION}",
+    page_title="MEK Stock Alert Pro",
     page_icon="📈",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
 )
 
-# Load Custom Styles
+# Load the shared cream · gold · red design system
 load_custom_css()
 
-# Initialize Session State
-if 'portfolio' not in st.session_state:
-    st.session_state.portfolio = []
-if 'watchlist' not in st.session_state:
-    st.session_state.watchlist = []
-if 'alerts' not in st.session_state:
-    st.session_state.alerts = []
+if "scan_results" not in st.session_state:
+    st.session_state.scan_results = None
 
-# ==================== UTILITY FUNCTIONS ====================
 
-class MarketUtils:
-    """Market utility functions"""
-    
-    @staticmethod
-    def is_market_open():
-        """Check if Indian market is currently open"""
-        ist = pytz.timezone('Asia/Kolkata')
-        now = datetime.now(ist)
-        
-        if now.weekday() >= 5:
-            return False
-        
-        market_open = now.replace(hour=9, minute=15, second=0)
-        market_close = now.replace(hour=15, minute=30, second=0)
-        
-        return market_open <= now <= market_close
-    
-    @staticmethod
-    def get_market_status():
-        """Get current market status"""
-        is_open = MarketUtils.is_market_open()
-        if is_open:
-            return '<span class="status-live"></span> Market LIVE', True
-        else:
-            return '<span class="status-closed"></span> Market Closed', False
-    
-    @staticmethod
-    def format_inr(value):
-        """Format number in Indian numbering system"""
-        if value >= 10000000:
-            return f"₹{value/10000000:.2f} Cr"
-        elif value >= 100000:
-            return f"₹{value/100000:.2f} L"
-        else:
-            return f"₹{value:,.2f}"
+# ==================== DATA ====================
 
-class IndianMarketData:
-    """Fetch Indian market data"""
-    
-    @staticmethod
-    @st.cache_data(ttl=300)
-    def get_mutual_fund_nav(amfi_code):
-        """Fetch NAV from AMFI"""
-        try:
-            url = f"https://api.mfapi.in/mf/{amfi_code}"
-            response = requests.get(url, timeout=10)
-            if response.status_code == 200:
-                data = response.json()
-                return {
-                    'nav': float(data['data'][0]['nav']),
-                    'date': data['data'][0]['date'],
-                    'scheme_name': data['meta']['scheme_name']
-                }
-            return None
-        except Exception:
-            return None
-    
-    @staticmethod
-    @st.cache_data(ttl=60)
-    def get_stock_data(symbol, period='1mo'):
-        """Fetch stock data with caching"""
-        try:
-            stock = yf.Ticker(symbol)
-            df = stock.history(period=period)
-            info = stock.info
-            return df, info
-        except Exception:
-            return None, None
+@st.cache_data(ttl=300, show_spinner=False)
+def cached_market_data():
+    return collect_market_data()
 
-class TechnicalIndicators:
-    """Simple technical indicators"""
-    
-    @staticmethod
-    def calculate_sma(data, window):
-        """Simple Moving Average"""
-        return data.rolling(window=window).mean()
-    
-    @staticmethod
-    def calculate_rsi(data, window=14):
-        """Relative Strength Index"""
-        delta = data.diff()
-        gain = (delta.where(delta > 0, 0)).rolling(window=window).mean()
-        loss = (-delta.where(delta < 0, 0)).rolling(window=window).mean()
-        rs = gain / loss
-        rsi = 100 - (100 / (1 + rs))
-        return rsi
-    
-    @staticmethod
-    def calculate_bollinger_bands(data, window=20, num_std=2):
-        """Bollinger Bands"""
-        sma = data.rolling(window=window).mean()
-        std = data.rolling(window=window).std()
-        upper_band = sma + (std * num_std)
-        lower_band = sma - (std * num_std)
-        return upper_band, sma, lower_band
 
-# ==================== HEADER ====================
+def ist_now():
+    return datetime.datetime.now(pytz.timezone("Asia/Kolkata"))
+
+
+def market_open(now=None):
+    now = now or ist_now()
+    if now.weekday() >= 5:
+        return False
+    mins = now.hour * 60 + now.minute
+    return 555 <= mins <= 930  # 09:15 - 15:30 IST
+
+
+# ==================== SHARED CHROME ====================
 
 def render_header():
-    """Render app header"""
+    now = ist_now()
+    open_ = market_open(now)
+    status = (
+        f'<span class="status-live"></span><b style="color:{PALETTE_OK}">Market LIVE</b>'
+        if open_ else
+        '<span class="status-closed"></span><b>Market Closed</b>'
+    )
     st.markdown(f"""
         <div class="app-header">
-            <h1 class="app-title">📊 {AppConfig.APP_NAME}</h1>
-            <p class="app-subtitle">Indian Markets • Mutual Funds • Real-time Alerts</p>
+            <h1 class="app-title">📈 MEK Stock Alert Pro</h1>
+            <p class="app-subtitle">
+                {status}<span class="sep">·</span>Indian Markets · Mutual Funds · Dip Alerts
+                <span class="sep">·</span>{now.strftime('%d %b %Y, %I:%M %p')} IST
+            </p>
         </div>
     """, unsafe_allow_html=True)
-    
-    col1, col2, col3, col4 = st.columns(4)
-    
-    status_text, is_open = MarketUtils.get_market_status()
-    
-    with col1:
-        st.markdown(f"""
-            <div class="metric-card">
-                <div class="metric-label">Market Status</div>
-                <div class="metric-value" style="font-size: 1.2rem;">{status_text}</div>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    with col2:
-        ist = pytz.timezone('Asia/Kolkata')
-        now = datetime.now(ist)
-        st.markdown(f"""
-            <div class="metric-card">
-                <div class="metric-label">IST Time</div>
-                <div class="metric-value" style="font-size: 1.2rem;">{now.strftime('%I:%M %p')}</div>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    with col3:
-        nifty_data, _ = IndianMarketData.get_stock_data('^NSEI', '1d')
-        if nifty_data is not None and len(nifty_data) > 0:
-            nifty_price = nifty_data['Close'].iloc[-1]
-            nifty_change = ((nifty_data['Close'].iloc[-1] - nifty_data['Open'].iloc[-1]) / nifty_data['Open'].iloc[-1]) * 100
-            change_color = '#4ade80' if nifty_change >= 0 else '#f87171'
-            st.markdown(f"""
-                <div class="metric-card">
-                    <div class="metric-label">NIFTY 50</div>
-                    <div class="metric-value" style="font-size: 1.2rem;">{nifty_price:.2f}</div>
-                    <div style="color: {change_color}; font-weight: 600;">{nifty_change:+.2f}%</div>
-                </div>
-            """, unsafe_allow_html=True)
-    
-    with col4:
-        st.markdown(f"""
-            <div class="metric-card">
-                <div class="metric-label">Active Alerts</div>
-                <div class="metric-value">{len(st.session_state.alerts)}</div>
-            </div>
-        """, unsafe_allow_html=True)
 
-# ==================== SIDEBAR ====================
+
+PALETTE_OK = "#9a6d00"  # gold = positive in this theme
+
 
 def render_sidebar():
-    """Render sidebar navigation"""
     with st.sidebar:
-        st.markdown("### 🧭 Navigation")
-        
+        st.markdown("### 🧭 Navigate")
         page = st.radio(
-            "Select Page",
-            [
-                "🏠 Dashboard",
-                "🇮🇳 Indian Markets",
-                "💎 Mutual Funds",
-                "📊 Stock Scanner",
-                "💼 Portfolio",
-                "🔔 Alerts",
-                "⚙️ Settings"
-            ],
-            label_visibility="collapsed"
+            "Page",
+            ["🏠 Dashboard", "🔍 NIFTY 100 Scanner", "📧 Email Digest Preview", "ℹ️ About & Setup"],
+            label_visibility="collapsed",
         )
-        
         st.markdown("---")
-        st.markdown("### ⚡ Quick Actions")
-        
-        if st.button("🔄 Refresh Data", key="refresh_btn"):
+        st.markdown("### ⚡ Quick actions")
+        if st.button("🔄 Refresh data", use_container_width=True):
             st.cache_data.clear()
-            st.success("✅ Data Refreshed!")
             st.rerun()
-        
         st.markdown("---")
-        st.caption(f"v{AppConfig.VERSION}")
-        st.caption(f"By {AppConfig.AUTHOR}")
-        
+        cfg = load_config()
+        st.caption(f"Risk profile: **{cfg.get('risk_profile', 'moderate').title()}**")
+        st.caption(f"Alerts → {cfg.get('email', 'not configured')}")
+        st.caption("v2.0 · Cream · Gold · Red")
         return page
+
 
 # ==================== PAGES ====================
 
-def render_dashboard():
-    """Main dashboard"""
-    st.title("🏠 Market Dashboard")
-    st.subheader("💰 Your Mutual Funds")
-    
-    mf_data = []
-    for fund in AppConfig.TRACKED_MUTUAL_FUNDS:
-        nav_data = IndianMarketData.get_mutual_fund_nav(fund['amfi'])
-        if nav_data:
-            mf_data.append({
-                'Fund Name': fund['name'][:40] + '...',
-                'Category': fund['category'],
-                'NAV': f"₹{nav_data['nav']:.2f}",
-                'Rating': '⭐' * fund['rating'],
-                'Updated': nav_data['date']
-            })
-    
-    if mf_data:
-        df = pd.DataFrame(mf_data)
-        st.dataframe(df, hide_index=True)
+def page_dashboard():
+    with st.spinner("Fetching live AMFI NAVs & NSE quotes…"):
+        data = cached_market_data()
+    components.html(build_embed_html(data), height=2100, scrolling=True)
+
+
+def page_scanner():
+    st.markdown("#### 🔍 Intraday Flash Scanner")
+    st.caption("Screens all NIFTY 100 constituents for sudden dips ≥ 2%, sharp intraday pullbacks and deep value zones.")
+
+    col_btn, col_info = st.columns([1, 2])
+    with col_btn:
+        if st.button("🚀 Run Scan", use_container_width=True, type="primary"):
+            with st.spinner("Crunching 5-day price action for all 100 constituents…"):
+                st.session_state.scan_results = scanner.scan_nifty_100(threshold_pct=-2.0)
+
+    opps = st.session_state.scan_results
+    if opps is None:
+        st.info("Run the scanner to surface every NIFTY 100 leader currently in a dip.")
+        return
+
+    m1, m2, m3 = st.columns(3)
+    m1.markdown('<div class="metric-card"><div class="metric-label">Opportunities</div>'
+                f'<div class="metric-value">{len(opps)}</div></div>', unsafe_allow_html=True)
+    if opps:
+        deep = [o for o in opps if o["drawdown_52w"] <= -20]
+        flash = [o for o in opps if o["daily_pct"] <= -2]
+        m2.markdown('<div class="metric-card"><div class="metric-label">Deep value zone</div>'
+                    f'<div class="metric-value negative">{len(deep)}</div>'
+                    '<div class="metric-label" style="margin-top:4px">down &gt; 20% from peak</div></div>', unsafe_allow_html=True)
+        m3.markdown('<div class="metric-card"><div class="metric-label">Flash dips today</div>'
+                    f'<div class="metric-value positive">{len(flash)}</div>'
+                    '<div class="metric-label" style="margin-top:4px">down ≥ 2% on the day</div></div>', unsafe_allow_html=True)
+
+        rows = [{
+            "Symbol": o["symbol"], "Price (₹)": o["price"], "Day %": o["daily_pct"],
+            "52w High (₹)": o["high_52w"], "From Peak %": o["drawdown_52w"],
+            "Recovery %": o["recovery_upside_pct"], "Signal": o["drop_type"],
+        } for o in opps]
+        st.dataframe(rows, hide_index=True, use_container_width=True)
     else:
-        st.warning("Unable to fetch mutual fund data. Please try again.")
-    
+        st.success("Clean tape — no NIFTY 100 leader is in a sharp dip right now. Discipline beats FOMO.")
+
+
+def page_email_preview():
+    st.markdown("#### 📧 Daily Digest Email Preview")
+    st.caption("Exactly what the automated 4:00 PM IST email delivers to your inbox (GitHub Actions or `python send_email.py`).")
+
+    if st.button("Generate preview", use_container_width=True, type="primary"):
+        with st.spinner("Building the advisory report…"):
+            import indian_market_monitor as imm
+            from generate_preview import build_html_report
+            rep = imm.generate_advisory_report(risk_tolerance="moderate", user_email=load_config().get("email", ""))
+            st.session_state["email_html"] = build_html_report(rep)
+
+    html = st.session_state.get("email_html")
+    if html:
+        components.html(html, height=2500, scrolling=True)
+    else:
+        st.info("Click **Generate preview** to render the latest digest.")
+
+
+def page_about():
+    st.markdown("#### ℹ️ About & Setup")
+    st.markdown(
+        """
+This project ships **two front-ends over one shared engine**:
+
+| | Web dashboard (`app.py`) | This Streamlit app |
+|---|---|---|
+| Run | `python app.py` → `http://localhost:5000` | `streamlit run streamlit_app.py` |
+| Best for | Full experience — live scanner, test alerts, auto-refresh | Quick hosted view (Streamlit Cloud) |
+| Dashboard | Served directly | Same UI, embedded with a data snapshot |
+
+**Design system** — cream canvas, gold = gains, red = losses, frosted-glass
+panels, and controls that rise off the page on hover/press. Charts have
+crosshair hover: value at that point + rise/fall to the latest.
+
+**Data sources** — AMFI NAV feed (api.mfapi.in) and Yahoo Finance (NSE).
+If the feeds are unreachable, a clearly-labelled sample snapshot keeps the
+UI usable.
+
+**Automated email alerts** — push to GitHub and set the
+`SENDER_EMAIL` / `SENDER_APP_PASSWORD` secrets; the workflow emails the
+digest at market open, midday and close on trading days.
+        """
+    )
     st.markdown("---")
-    st.subheader("🔔 Recent Alerts")
-    
-    if st.session_state.alerts:
-        for alert in st.session_state.alerts[-5:]:
-            st.markdown(f"""
-                <div class="alert-info">
-                    <strong>{alert.get('symbol', 'N/A')}</strong>: {alert.get('message', 'No message')}
-                </div>
-            """, unsafe_allow_html=True)
-    else:
-        st.info("No recent alerts")
+    st.caption("Mutual fund investments are subject to market risks. Personal advisory tool — not investment advice.")
 
-def render_indian_markets():
-    """Indian markets view"""
-    st.title("🇮🇳 Indian Markets")
-    st.subheader("📊 NIFTY 50 Performance")
-    
-    df, info = IndianMarketData.get_stock_data('^NSEI', '1mo')
-    
-    if df is not None and len(df) > 0:
-        df['SMA_20'] = TechnicalIndicators.calculate_sma(df['Close'], 20)
-        df['SMA_50'] = TechnicalIndicators.calculate_sma(df['Close'], 50)
-        df['RSI'] = TechnicalIndicators.calculate_rsi(df['Close'])
-        df['BB_Upper'], df['BB_Middle'], df['BB_Lower'] = TechnicalIndicators.calculate_bollinger_bands(df['Close'])
-        
-        fig = make_subplots(
-            rows=2, cols=1,
-            shared_xaxes=True,
-            vertical_spacing=0.03,
-            subplot_titles=('NIFTY 50 Price', 'RSI'),
-            row_heights=[0.7, 0.3]
-        )
-        
-        fig.add_trace(
-            go.Candlestick(
-                x=df.index,
-                open=df['Open'],
-                high=df['High'],
-                low=df['Low'],
-                close=df['Close'],
-                name='NIFTY 50'
-            ), 
-            row=1, col=1
-        )
-        
-        fig.add_trace(
-            go.Scatter(x=df.index, y=df['SMA_20'], name='SMA 20', line=dict(color='orange', width=1)), 
-            row=1, col=1
-        )
-        
-        fig.add_trace(
-            go.Scatter(x=df.index, y=df['SMA_50'], name='SMA 50', line=dict(color='blue', width=1)), 
-            row=1, col=1
-        )
-        
-        fig.add_trace(
-            go.Scatter(x=df.index, y=df['RSI'], name='RSI', line=dict(color='purple', width=2)), 
-            row=2, col=1
-        )
-        
-        fig.add_hline(y=70, line_dash="dash", line_color="red", row=2, col=1)
-        fig.add_hline(y=30, line_dash="dash", line_color="green", row=2, col=1)
-        
-        fig.update_layout(height=700, template='plotly_dark', xaxis_rangeslider_visible=False)
-        st.plotly_chart(fig)
-        
-        col1, col2, col3, col4 = st.columns(4)
-        
-        with col1:
-            st.metric("Current", f"{df['Close'].iloc[-1]:.2f}")
-        with col2:
-            st.metric("Day High", f"{df['High'].iloc[-1]:.2f}")
-        with col3:
-            st.metric("Day Low", f"{df['Low'].iloc[-1]:.2f}")
-        with col4:
-            st.metric("RSI", f"{df['RSI'].iloc[-1]:.2f}")
 
-def render_mutual_funds():
-    """Detailed mutual funds view"""
-    st.title("💎 Mutual Funds Analysis")
-    
-    for fund in AppConfig.TRACKED_MUTUAL_FUNDS:
-        with st.expander(f"📁 {fund['name']}"):
-            nav_data = IndianMarketData.get_mutual_fund_nav(fund['amfi'])
-            
-            if nav_data:
-                col1, col2, col3 = st.columns(3)
-                
-                with col1:
-                    st.metric("Current NAV", f"₹{nav_data['nav']:.2f}")
-                with col2:
-                    st.metric("Category", fund['category'])
-                with col3:
-                    st.metric("Rating", '⭐' * fund['rating'])
-                
-                st.caption(f"Last Updated: {nav_data['date']}")
-            else:
-                st.warning("Unable to fetch data")
-
-def render_stock_scanner():
-    """Stock scanner"""
-    st.title("📊 Stock Scanner")
-    st.subheader("🔍 Nifty 100 Scanner")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        min_drop = st.slider("Minimum Drop %", 0.0, 10.0, 2.0, 0.5)
-    with col2:
-        sort_by = st.selectbox("Sort By", ["Drop %", "Volume", "Price"])
-    
-    if st.button("🚀 Scan Now", key="scan_btn"):
-        with st.spinner("Scanning stocks..."):
-            scan_results = []
-            
-            for symbol in AppConfig.NIFTY_100_STOCKS[:10]:
-                df, info = IndianMarketData.get_stock_data(symbol, '1d')
-                
-                if df is not None and len(df) > 0:
-                    current_price = df['Close'].iloc[-1]
-                    open_price = df['Open'].iloc[-1]
-                    change_pct = ((current_price - open_price) / open_price) * 100
-                    
-                    if change_pct <= -min_drop:
-                        scan_results.append({
-                            'Symbol': symbol.replace('.NS', ''),
-                            'Price': f"₹{current_price:.2f}",
-                            'Change %': f"{change_pct:.2f}%",
-                            'Volume': f"{df['Volume'].iloc[-1]/1e6:.2f}M"
-                        })
-            
-            if scan_results:
-                st.success(f"✅ Found {len(scan_results)} opportunities!")
-                st.dataframe(pd.DataFrame(scan_results), hide_index=True)
-            else:
-                st.info("No stocks matching criteria found")
-
-def render_portfolio():
-    """Portfolio tracker"""
-    st.title("💼 Portfolio Tracker")
-    
-    tab1, tab2 = st.tabs(["📊 Holdings", "➕ Add Stock"])
-    
-    with tab1:
-        if st.session_state.portfolio:
-            portfolio_df = pd.DataFrame(st.session_state.portfolio)
-            st.dataframe(portfolio_df, hide_index=True)
-        else:
-            st.info("Your portfolio is empty. Add stocks from the 'Add Stock' tab.")
-    
-    with tab2:
-        st.subheader("Add New Stock")
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            symbol = st.text_input("Stock Symbol (e.g., RELIANCE.NS)")
-            shares = st.number_input("Number of Shares", 1, 10000, 10)
-        
-        with col2:
-            buy_price = st.number_input("Buy Price (₹)", 1.0, 100000.0, 100.0)
-            buy_date = st.date_input("Purchase Date")
-        
-        if st.button("➕ Add to Portfolio", key="add_portfolio_btn"):
-            st.session_state.portfolio.append({
-                'Symbol': symbol,
-                'Shares': shares,
-                'Buy Price': buy_price,
-                'Date': buy_date.strftime('%Y-%m-%d')
-            })
-            st.success(f"✅ Added {shares} shares of {symbol}")
-            st.rerun()
-
-def render_alerts():
-    """Alert management"""
-    st.title("🔔 Alert Manager")
-    
-    tab1, tab2 = st.tabs(["📋 Active Alerts", "➕ Create Alert"])
-    
-    with tab1:
-        if st.session_state.alerts:
-            for idx, alert in enumerate(st.session_state.alerts):
-                col1, col2 = st.columns([4, 1])
-                
-                with col1:
-                    st.markdown(f"""
-                        <div class="alert-info">
-                            {alert.get('message', 'No message')}
-                        </div>
-                    """, unsafe_allow_html=True)
-                
-                with col2:
-                    if st.button("🗑️", key=f"del_{idx}"):
-                        st.session_state.alerts.pop(idx)
-                        st.rerun()
-        else:
-            st.info("No active alerts")
-    
-    with tab2:
-        st.subheader("Create New Alert")
-        
-        symbol = st.text_input("Stock Symbol")
-        condition = st.selectbox("Condition", ["Price Above", "Price Below", "Drop %"])
-        target = st.number_input("Target Value", 0.0, 10000.0, 100.0)
-        
-        if st.button("✅ Create Alert", key="create_alert_btn"):
-            st.session_state.alerts.append({
-                'symbol': symbol,
-                'condition': condition,
-                'target': target,
-                'message': f"{symbol}: {condition} {target}"
-            })
-            st.success("Alert created!")
-            st.rerun()
-
-def render_settings():
-    """Settings page"""
-    st.title("⚙️ Settings")
-    st.subheader("📧 Notification Settings")
-    
-    st.text_input("Email", AppConfig.SENDER_EMAIL)
-    st.text_input("Telegram Chat ID", str(AppConfig.TELEGRAM_CHAT_ID) if AppConfig.TELEGRAM_CHAT_ID else "Not configured")
-    
-    st.checkbox("Enable Email Alerts", value=True)
-    st.checkbox("Enable Telegram Alerts", value=True)
-    
-    if st.button("💾 Save Settings", key="save_settings_btn"):
-        st.success("Settings saved!")
-
-# ==================== MAIN APP ====================
+# ==================== MAIN ====================
 
 def main():
     render_header()
     page = render_sidebar()
-    
+
     if page == "🏠 Dashboard":
-        render_dashboard()
-    elif page == "🇮🇳 Indian Markets":
-        render_indian_markets()
-    elif page == "💎 Mutual Funds":
-        render_mutual_funds()
-    elif page == "📊 Stock Scanner":
-        render_stock_scanner()
-    elif page == "💼 Portfolio":
-        render_portfolio()
-    elif page == "🔔 Alerts":
-        render_alerts()
-    elif page == "⚙️ Settings":
-        render_settings()
+        page_dashboard()
+    elif page == "🔍 NIFTY 100 Scanner":
+        page_scanner()
+    elif page == "📧 Email Digest Preview":
+        page_email_preview()
+    else:
+        page_about()
+
 
 if __name__ == "__main__":
     main()

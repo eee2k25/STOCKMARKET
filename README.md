@@ -13,13 +13,19 @@ Personalized monitoring and dip-buying investment advisory engine calibrated for
 
 ## 🚀 Quick Usage
 
-### 1. Run the Live Web Dashboard
+### 1. Run the Live Web Dashboard (recommended)
 ```bash
 python app.py
 ```
-Open `http://localhost:5000` in your browser.
+Open `http://localhost:5000` in your browser — the full interactive cream · gold · red dashboard (hover charts, scanner, test alerts).
 
-### 2. Run Manual Scan / Email Alert
+### 2. Run the Streamlit App
+```bash
+streamlit run streamlit_app.py
+```
+Same dashboard design, embedded with a data snapshot, plus native Scanner / Email-preview pages.
+
+### 3. Run Manual Scan / Email Alert
 ```bash
 python send_email.py
 ```
