@@ -139,15 +139,23 @@ def fetch_mutual_funds_data(funds):
             print(f"Error fetching fund {code}: {e}", file=sys.stderr)
     return results
 
-def generate_advisory_report(risk_tolerance="moderate", user_email="user@example.com", custom_tickers=None):
-    """Generate comprehensive analysis and email alert output."""
+def generate_advisory_report(risk_tolerance="moderate", user_email="user@example.com", custom_tickers=None, custom_funds=None):
+    """Generate comprehensive analysis and email alert output.
+
+    custom_tickers: optional list of NSE symbols to track instead of the
+    default blue-chip list (per-user watchlist).
+    custom_funds: optional {code: {name, category}} dict to track instead of
+    DEFAULT_FUNDS (per-user watchlist).
+    """
     stocks_to_track = DEFAULT_STOCKS
     if custom_tickers:
         stocks_to_track = {f"{t}.NS" if not t.endswith(".NS") else t: {"name": t, "sector": "Nifty 50"} for t in custom_tickers}
 
+    funds_to_track = custom_funds if custom_funds else DEFAULT_FUNDS
+
     index_data = fetch_index_data()
     stocks = fetch_stock_data(stocks_to_track)
-    funds = fetch_mutual_funds_data(DEFAULT_FUNDS)
+    funds = fetch_mutual_funds_data(funds_to_track)
 
     return {
         "timestamp": datetime.datetime.now().strftime("%d-%b-%Y %H:%M IST"),

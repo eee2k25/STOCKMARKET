@@ -1,5 +1,11 @@
-"""Shared market data layer for the Flask dashboard and the Streamlit app."""
+"""Shared market data layer for the Flask dashboard and the Streamlit app.
+
+Also provides per-user helpers: instrument search (used by the "+ Add"
+watchlist modal) and live holdings valuation (used by the My Portfolio tab
+and the per-user email digest).
+"""
 import os
+import re
 import json
 import math
 import random
@@ -232,15 +238,25 @@ def _demo_data(cfg):
     return nifty, funds, stocks
 
 
-def collect_market_data():
+def collect_market_data(cfg=None):
     """Fetch nifty + all funds + all stocks concurrently. Falls back to demo
-    data (flagged) when the live feeds are unreachable."""
-    cfg = load_config()
+    data (flagged) when the live feeds are unreachable.
+
+    cfg: optional config dict in the DEFAULT_CONFIG shape ({"funds": {...},
+    "stocks": {...}}). Pass a per-user watchlist cfg to personalise the
+    dashboard; when omitted, the global user_config.json / DEFAULT_CONFIG is
+    used (the shared single-profile view). An empty cfg (user with an empty
+    watchlist) returns empty lists — the demo-fill logic never injects
+    instruments the user did not configure.
+    """
+    cfg = cfg if cfg is not None else load_config()
+    cfg_funds = cfg.get("funds") or {}
+    cfg_stocks = cfg.get("stocks") or {}
 
     with ThreadPoolExecutor(max_workers=8) as pool:
         fut_nifty = pool.submit(_nifty_payload)
-        fut_funds = {pool.submit(_fund_payload, code, meta): code for code, meta in cfg["funds"].items()}
-        fut_stocks = {pool.submit(_stock_payload, sym, meta): sym for sym, meta in cfg["stocks"].items()}
+        fut_funds = {pool.submit(_fund_payload, code, meta): code for code, meta in cfg_funds.items()}
+        fut_stocks = {pool.submit(_stock_payload, sym, meta): sym for sym, meta in cfg_stocks.items()}
 
         try:
             nifty = fut_nifty.result(timeout=20)
@@ -271,7 +287,7 @@ def collect_market_data():
 
     live = nifty is not None and funds_list and stocks_list and funds_failed == 0 and stocks_failed == 0
     demo = False
-    if not live:
+    if not live and (cfg_funds or cfg_stocks):
         # Partial or total feed failure -> serve demo snapshot so the UI stays usable.
         demo = True
         d_nifty, d_funds, d_stocks = _demo_data(cfg)
@@ -291,4 +307,261 @@ def collect_market_data():
         "funds": funds_list,
         "stocks": stocks_list,
         "demo": demo
+    }
+
+
+# ---------------------------------------------------------------------------
+# Holdings valuation (My Portfolio tab + per-user digest)
+# ---------------------------------------------------------------------------
+
+def _quote_stock(sym):
+    """Lightweight live quote for one NSE symbol: price + day change."""
+    tk = yf.Ticker(sym)
+    hist = tk.history(period="5d")
+    if hist.empty or len(hist) < 2:
+        return None
+    curr = float(hist['Close'].iloc[-1])
+    prev = float(hist['Close'].iloc[-2])
+    change = curr - prev
+    return {
+        "price": round(curr, 2),
+        "change": round(change, 2),
+        "pct_change": round((change / prev) * 100, 2),
+        "date": hist.index[-1].strftime('%d %b %Y'),
+    }
+
+
+def _quote_fund(code):
+    """Lightweight live quote for one AMFI scheme code: NAV + day change."""
+    r = requests.get(f"https://api.mfapi.in/mf/{code}", timeout=8)
+    if r.status_code != 200:
+        return None
+    nav_list = r.json().get("data", [])
+    if len(nav_list) < 2:
+        return None
+    curr = float(nav_list[0]["nav"])
+    prev = float(nav_list[1]["nav"])
+    change = curr - prev
+    return {
+        "price": round(curr, 2),
+        "change": round(change, 2),
+        "pct_change": round((change / prev) * 100, 2),
+        "date": nav_list[0]["date"],
+    }
+
+
+def collect_holdings_valuation(holdings):
+    """Value a user's holding lots against live quotes.
+
+    holdings: list of dicts from user_db.holdings_list().
+    Returns {"holdings": [...valued lots...], "totals": {...}}.
+    When a quote is unreachable the lot is valued at its buy price and
+    flagged live=False so the UI can show "—" for the day change.
+    """
+    if not holdings:
+        return {
+            "holdings": [],
+            "totals": {"invested": 0, "current_value": 0, "day_change": 0,
+                       "day_pct": 0, "pnl": 0, "pnl_pct": 0, "live": True},
+            "as_of": None,
+        }
+
+    def value_one(h):
+        try:
+            q = _quote_fund(h["symbol"]) if h["kind"] == "funds" else _quote_stock(h["symbol"])
+        except Exception:
+            q = None
+        live = q is not None
+        price = q["price"] if live else float(h["buy_price"])
+        qty = float(h["qty"])
+        current_value = round(price * qty, 2)
+        cost = round(float(h["buy_price"]) * qty, 2)
+        pnl = round(current_value - cost, 2)
+        pnl_pct = round((pnl / cost) * 100, 2) if cost else 0.0
+        return {
+            "id": h["id"],
+            "kind": h["kind"],
+            "symbol": h["symbol"],
+            "name": h["name"] or h["symbol"],
+            "qty": qty,
+            "buy_price": round(float(h["buy_price"]), 2),
+            "buy_date": h.get("buy_date"),
+            "current_price": price,
+            "current_value": current_value,
+            "day_change": q["change"] if live else None,
+            "day_pct": q["pct_change"] if live else None,
+            "pnl": pnl,
+            "pnl_pct": pnl_pct,
+            "live": live,
+        }
+
+    valued = []
+    with ThreadPoolExecutor(max_workers=6) as pool:
+        futs = [pool.submit(value_one, h) for h in holdings]
+        for fut in as_completed(futs, timeout=45):
+            try:
+                valued.append(fut.result())
+            except Exception:
+                continue
+
+    invested = round(sum(v["buy_price"] * v["qty"] for v in valued), 2)
+    current_value = round(sum(v["current_value"] for v in valued), 2)
+    day_change = round(sum((v["day_change"] or 0) * v["qty"] for v in valued), 2)
+    day_pct = round((day_change / (current_value - day_change)) * 100, 2) if current_value != day_change else 0.0
+    pnl = round(current_value - invested, 2)
+    pnl_pct = round((pnl / invested) * 100, 2) if invested else 0.0
+
+    return {
+        "holdings": valued,
+        "totals": {
+            "invested": invested,
+            "current_value": current_value,
+            "day_change": day_change,
+            "day_pct": day_pct,
+            "pnl": pnl,
+            "pnl_pct": pnl_pct,
+            "live": any(v["live"] for v in valued),
+        },
+        "as_of": datetime.datetime.now().strftime("%d %b %Y, %I:%M %p IST"),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Instrument search ("+ Add" modal — any NSE stock or mutual fund)
+# ---------------------------------------------------------------------------
+
+# Bundled catalog so search works even before the first AMFI master download:
+# the 9 flagship funds + a few extras already referenced by this project.
+STATIC_FUNDS = [
+    {"code": "119783", "name": "SBI Healthcare Opportunities Fund (Direct-Growth)", "category": "Sectoral - Healthcare"},
+    {"code": "113049", "name": "HDFC Gold ETF Fund", "category": "Commodities - Gold"},
+    {"code": "119788", "name": "SBI Gold Fund (Direct-Growth)", "category": "Commodities - Gold"},
+    {"code": "118551", "name": "Franklin U.S. Opportunities Equity Active FoF (Direct-Growth)", "category": "International Equity"},
+    {"code": "118736", "name": "Nippon India Balanced Advantage Fund (Direct-Growth)", "category": "Hybrid Dynamic Asset Allocation"},
+    {"code": "118778", "name": "Nippon India Small Cap Fund (Direct-Growth)", "category": "Equity - Small Cap"},
+    {"code": "147662", "name": "ICICI Prudential Commodities Fund (Direct-Growth)", "category": "Thematic - Commodities"},
+    {"code": "120578", "name": "SBI Technology Opportunities Fund (Direct-Growth)", "category": "Sectoral - Technology"},
+    {"code": "120594", "name": "ICICI Prudential Technology Fund (Direct-Growth)", "category": "Sectoral - Technology"},
+    {"code": "120716", "name": "UTI Nifty 50 Index Fund (Direct-Growth)", "category": "Large Cap / Index"},
+    {"code": "122639", "name": "Parag Parikh Flexi Cap Fund (Direct-Growth)", "category": "Flexi Cap Equity"},
+    {"code": "118989", "name": "HDFC Top 100 Fund (Direct-Growth)", "category": "Large Cap Equity"},
+]
+
+AMFI_MASTER_URL = "https://www.amfiindia.com/spages/NAVAll.txt"
+AMFI_CACHE_FILE = os.path.join(BASE_DIR, "amfi_master_cache.json")
+AMFI_CACHE_TTL = 24 * 3600  # refresh the ~3 MB master list once a day
+
+try:
+    import nifty100_intraday_scanner as _scanner_mod
+    STATIC_STOCKS = [s for s in getattr(_scanner_mod, "NIFTY_100_STOCKS", []) if s.endswith(".NS")]
+except Exception:
+    STATIC_STOCKS = []
+
+
+def _amfi_master():
+    """AMFI full scheme list (code + name), cached on disk for 24h."""
+    if os.path.exists(AMFI_CACHE_FILE):
+        try:
+            age = datetime.datetime.now().timestamp() - os.path.getmtime(AMFI_CACHE_FILE)
+            if age < AMFI_CACHE_TTL:
+                with open(AMFI_CACHE_FILE, "r", encoding="utf-8") as f:
+                    return json.load(f)
+        except Exception:
+            pass
+    try:
+        r = requests.get(AMFI_MASTER_URL, timeout=20)
+        if r.status_code == 200 and r.text:
+            schemes = []
+            for line in r.text.splitlines():
+                parts = line.split(";")
+                if len(parts) >= 6 and parts[0].strip().isdigit() and parts[3].strip():
+                    schemes.append({
+                        "code": parts[0].strip(),
+                        "name": parts[3].strip(),
+                        "category": (parts[4].strip() or parts[5].strip() or "Mutual Fund"),
+                    })
+            with open(AMFI_CACHE_FILE, "w", encoding="utf-8") as f:
+                json.dump(schemes, f)
+            return schemes
+    except Exception:
+        pass
+    return None
+
+
+def _search_funds(q, limit):
+    ql = q.lower()
+    results = {}
+
+    def add(code, name, category="Mutual Fund"):
+        if code in results:
+            return
+        results[code] = {"kind": "funds", "symbol": code, "name": name, "category": category}
+
+    # 1) live AMFI master (cached) — richest source
+    try:
+        for s in (_amfi_master() or []):
+            if ql in s["name"].lower() or ql in s["code"]:
+                add(s["code"], s["name"], s.get("category", "Mutual Fund"))
+                if len(results) >= limit * 2:
+                    break
+    except Exception:
+        pass
+    # 2) mfapi search endpoint (community API) as a live alternative
+    if len(results) < limit:
+        try:
+            r = requests.get(f"https://api.mfapi.in/mf/search?q={q}", timeout=10)
+            if r.status_code == 200:
+                for s in (r.json() or [])[:limit]:
+                    add(str(s.get("schemeCode", "")), s.get("schemeName", ""), "Mutual Fund")
+        except Exception:
+            pass
+    # 3) bundled catalog (works offline)
+    if len(results) < limit:
+        for s in STATIC_FUNDS:
+            if ql in s["name"].lower() or ql in s["code"]:
+                add(s["code"], s["name"], s["category"])
+    return list(results.values())[:limit]
+
+
+def _search_stocks(q, limit):
+    ql = q.lower().replace(".ns", "")
+    results = {}
+
+    def add(raw_sym, name="", sector=""):
+        sym = raw_sym.upper().rstrip(".NS") if raw_sym.upper().endswith(".NS") else raw_sym.upper()
+        key = f"{sym}.NS"
+        if key in results:
+            return
+        results[key] = {
+            "kind": "stocks",
+            "symbol": key,
+            "name": name or f"{sym} Ltd",
+            "sector": sector or "NSE",
+        }
+
+    for s in STATIC_STOCKS:
+        if ql in s.lower():
+            add(s)
+
+    # live Yahoo search enriches with real company names when reachable
+    if len(results) < limit:
+        try:
+            for r in (yf.Search(q, max_results=limit).quotes or []):
+                sym = r.get("symbol", "")
+                if sym.endswith(".NS"):
+                    add(sym, r.get("shortname") or r.get("longname") or "", "NSE")
+        except Exception:
+            pass
+
+    return list(results.values())[:limit]
+
+
+def search_instruments(q, limit=12):
+    """Search NSE stocks and mutual funds for the "+ Add" modal."""
+    q = (q or "").strip()
+    if not q:
+        return {"stocks": [], "funds": []}
+    return {
+        "stocks": _search_stocks(q, limit),
+        "funds": _search_funds(q, limit),
     }

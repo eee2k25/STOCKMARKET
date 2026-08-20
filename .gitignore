@@ -2,3 +2,7 @@ __pycache__/
 *.pyc
 user_config.json
 email_preview.html
+users.db
+*.db
+amfi_master_cache.json
+.venv/
