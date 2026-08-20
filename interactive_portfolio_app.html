@@ -649,6 +649,333 @@ input, select { font-family: inherit; }
 .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--gold); animation: pulseDot 2s infinite; }
 
 /* ============================================================
+   ACCOUNT AREA (header sign-in / account menu)
+============================================================ */
+.acct { position: relative; display: flex; align-items: center; }
+.acct-chip {
+  display: inline-flex; align-items: center; gap: 9px;
+  height: 38px; padding: 0 10px 0 6px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: var(--glass-recipe);
+  backdrop-filter: blur(14px) saturate(1.3);
+  -webkit-backdrop-filter: blur(14px) saturate(1.3);
+  box-shadow: var(--shadow-rest);
+  transition: transform 0.2s cubic-bezier(0.22, 0.9, 0.32, 1.2), box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.acct-chip:hover { transform: translateY(-2px); box-shadow: var(--shadow-lift); border-color: var(--gold); }
+.acct-avatar {
+  width: 27px; height: 27px; flex: none;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  font-size: 11px; font-weight: 800; letter-spacing: 0.02em;
+  background: linear-gradient(145deg, #e8c96a, #b8860b);
+  color: #3a2c05;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.55);
+}
+.acct-name { font-size: 12.5px; font-weight: 700; color: var(--text-1); max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.acct-caret { color: var(--text-3); transition: transform 0.2s ease; }
+.acct-menu.open .acct-caret { transform: rotate(180deg); }
+.acct-drop {
+  position: absolute; top: calc(100% + 10px); right: 0; z-index: 80;
+  min-width: 240px;
+  background: rgba(255, 252, 242, 0.96);
+  backdrop-filter: blur(18px) saturate(1.4);
+  -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-pop);
+  padding: 8px;
+  animation: fadeUp 0.18s ease;
+}
+.acct-email {
+  padding: 9px 12px 11px; border-bottom: 1px dashed rgba(146,110,32,0.25); margin-bottom: 6px;
+  font-size: 11.5px; color: var(--text-3); font-weight: 600; word-break: break-all;
+}
+.acct-item {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 10px 12px; border: none; background: none; border-radius: var(--radius-sm);
+  font-size: 13px; font-weight: 700; color: var(--text-1); text-align: left;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+.acct-item:hover { background: rgba(212, 175, 55, 0.16); transform: translateX(2px); }
+.acct-item.danger { color: var(--red-deep); }
+.acct-item.danger:hover { background: rgba(176, 58, 46, 0.10); }
+.acct-item svg { color: var(--gold-ink); }
+.acct-item.danger svg { color: var(--red); }
+
+/* ============================================================
+   MODALS (glass)
+============================================================ */
+.modal-backdrop {
+  position: fixed; inset: 0; z-index: 120;
+  display: flex; align-items: flex-start; justify-content: center;
+  padding: clamp(14px, 4vh, 44px) 16px 24px;
+  background: rgba(51, 38, 26, 0.38);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  overflow-y: auto;
+  animation: fadeUp 0.2s ease;
+}
+.modal {
+  width: min(520px, 100%);
+  background: linear-gradient(160deg, rgba(255,253,246,0.97), rgba(252,244,226,0.94));
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-pop);
+  overflow: hidden;
+  animation: fadeUp 0.25s ease;
+}
+.modal-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 18px 22px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.modal-head h3 { font-family: var(--font-display); font-size: 17px; font-weight: 700; color: var(--text-1); display: flex; align-items: center; gap: 9px; }
+.modal-head h3 svg { color: var(--gold-deep); flex: none; }
+.modal-x {
+  width: 30px; height: 30px; flex: none;
+  border-radius: 9px; border: 1px solid var(--border);
+  background: var(--glass); color: var(--text-2);
+  font-size: 15px; line-height: 1; font-weight: 700;
+  display: grid; place-items: center;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s ease;
+}
+.modal-x:hover { transform: translateY(-2px) rotate(90deg); box-shadow: var(--shadow-lift); color: var(--red); }
+.modal-body { padding: 18px 22px 22px; display: flex; flex-direction: column; gap: 14px; }
+.modal-body .modal-sub { font-size: 12.5px; color: var(--text-2); margin: -6px 0 2px; line-height: 1.55; }
+
+.form-row { display: flex; flex-direction: column; gap: 5px; }
+.form-row.two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.field label { font-size: 10.5px; font-weight: 800; letter-spacing: 0.09em; text-transform: uppercase; color: var(--text-3); }
+.field input, .field select {
+  height: 40px; width: 100%;
+  padding: 0 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.6);
+  color: var(--text-1); font-size: 13.5px; font-weight: 600;
+  box-shadow: inset 0 1px 2px rgba(92,64,14,0.06);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+.field input:focus, .field select:focus {
+  outline: none; border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(212,175,55,0.22);
+  transform: translateY(-1px);
+}
+.field select { appearance: none; cursor: pointer; }
+.field-hint { font-size: 11px; color: var(--text-3); }
+.modal-err {
+  display: none;
+  padding: 10px 13px; border-radius: var(--radius-sm);
+  background: rgba(176, 58, 46, 0.10); border: 1px solid rgba(176,58,46,0.35);
+  color: var(--red-deep); font-size: 12.5px; font-weight: 600;
+}
+.modal-err.show { display: block; animation: fadeUp 0.2s ease; }
+.modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 4px; flex-wrap: wrap; }
+.modal-actions .grow { margin-right: auto; }
+
+.divider { display: flex; align-items: center; gap: 12px; color: var(--text-3); font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+.divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+
+.gbtn {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  height: 42px; width: 100%;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background: #fff; color: #3c4043;
+  font-size: 13.5px; font-weight: 700;
+  box-shadow: 0 1px 2px rgba(92,64,14,0.12);
+  transition: transform 0.2s cubic-bezier(0.22, 0.9, 0.32, 1.2), box-shadow 0.2s ease;
+}
+.gbtn:hover { transform: translateY(-2px); box-shadow: var(--shadow-lift); }
+.gbtn:active { transform: translateY(-1px); }
+
+.form-toggle { text-align: center; font-size: 12.5px; color: var(--text-2); }
+.form-toggle button { background: none; border: none; color: var(--gold-deep); font-weight: 800; font-size: 12.5px; text-decoration: underline; text-underline-offset: 3px; }
+.form-toggle button:hover { color: var(--gold-ink); }
+
+/* search results inside the add modal */
+.search-box-lg { position: relative; }
+.search-box-lg input {
+  height: 44px; width: 100%;
+  padding: 0 14px 0 40px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-strong);
+  background: rgba(255,255,255,0.7);
+  color: var(--text-1); font-size: 14px; font-weight: 600;
+  box-shadow: var(--shadow-rest);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.search-box-lg svg { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: var(--text-3); }
+.search-box-lg input:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px rgba(212,175,55,0.22); }
+.sr-group { display: flex; flex-direction: column; gap: 8px; }
+.sr-group-title { font-size: 10.5px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-3); }
+.sr-list { display: flex; flex-direction: column; gap: 7px; max-height: 240px; overflow-y: auto; padding-right: 2px; }
+.sr-item {
+  display: flex; align-items: center; gap: 11px;
+  width: 100%; text-align: left;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: rgba(255,255,255,0.55);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+.sr-item:hover { transform: translateY(-2px); box-shadow: var(--shadow-lift); border-color: var(--gold); }
+.sr-chip {
+  width: 38px; height: 38px; flex: none;
+  border-radius: 10px; display: grid; place-items: center;
+  font-size: 10px; font-weight: 800; font-family: var(--mono);
+  background: var(--up-dim); color: var(--gold-deep);
+  border: 1px solid rgba(185,119,14,0.3);
+}
+.sr-chip.mf { background: var(--info-dim); color: var(--info); border-color: rgba(122,92,46,0.3); }
+.sr-names { min-width: 0; flex: 1; }
+.sr-name { font-size: 13px; font-weight: 700; color: var(--text-1); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sr-meta { font-size: 11px; color: var(--text-3); font-weight: 600; margin-top: 1px; }
+.sr-add {
+  flex: none; width: 30px; height: 30px;
+  border-radius: 9px; border: 1px solid var(--border-strong);
+  background: var(--glass-recipe); color: var(--gold-deep);
+  font-size: 16px; font-weight: 800; line-height: 1;
+  display: grid; place-items: center;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+.sr-item:hover .sr-add { background: linear-gradient(140deg, #e8c96a, #b8860b); color: #3a2c05; transform: scale(1.08); }
+.sr-empty { text-align: center; color: var(--text-3); font-size: 12.5px; padding: 18px 8px; border: 1px dashed var(--border-strong); border-radius: var(--radius-sm); }
+
+/* CSV import modal */
+.csv-zone {
+  border: 1.5px dashed var(--border-strong);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  text-align: center;
+  color: var(--text-2); font-size: 12.5px;
+  background: rgba(255,255,255,0.4);
+}
+.csv-zone b { color: var(--text-1); }
+.csv-preview { font-size: 12px; color: var(--text-2); }
+.csv-preview table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+.csv-preview th { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-3); text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--border); }
+.csv-preview td { padding: 5px 8px; border-bottom: 1px solid rgba(146,110,32,0.08); font-family: var(--mono); font-size: 11px; }
+.csv-preview td.num { text-align: right; }
+.csv-note { font-size: 11px; color: var(--text-3); line-height: 1.55; }
+
+/* ============================================================
+   PORTFOLIO (My Portfolio tab)
+============================================================ */
+.portfolio-panel {
+  background: var(--glass-recipe);
+  backdrop-filter: blur(16px) saturate(1.35);
+  -webkit-backdrop-filter: blur(16px) saturate(1.35);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+.pf-head {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  padding: 18px 22px;
+  background: linear-gradient(120deg, rgba(255,253,246,0.6), rgba(252,244,226,0.3));
+  border-bottom: 1px solid var(--border);
+}
+.pf-head .grow { flex: 1; min-width: 200px; }
+.pf-title { font-family: var(--font-display); font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 9px; color: var(--text-1); }
+.pf-desc { font-size: 12.5px; color: var(--text-2); margin-top: 3px; }
+.pf-totals {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  padding: 16px 22px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(255,253,246,0.35);
+}
+.pf-kpi { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.pf-kpi span { font-size: 10px; font-weight: 800; letter-spacing: 0.09em; text-transform: uppercase; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pf-kpi b { font-size: 19px; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; color: var(--text-1); line-height: 1.2; }
+.pf-kpi b.up { color: var(--gold-deep); } .pf-kpi b.down { color: var(--red); }
+.pf-kpi small { font-size: 11px; color: var(--text-3); font-weight: 600; }
+.pf-table-wrap { overflow-x: auto; padding: 6px 8px 10px; }
+.pf-table { width: 100%; border-collapse: collapse; min-width: 760px; }
+.pf-table th {
+  font-size: 10px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--text-3); text-align: right; padding: 10px 12px;
+  border-bottom: 1px solid var(--border); white-space: nowrap;
+  position: sticky; top: var(--header-h); background: rgba(252, 245, 229, 0.92);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); z-index: 4;
+}
+.pf-table th.l, .pf-table td.l { text-align: left; }
+.pf-table td {
+  padding: 12px; text-align: right; font-size: 12.5px; font-variant-numeric: tabular-nums;
+  border-bottom: 1px solid rgba(146,110,32,0.10); color: var(--text-1);
+  white-space: nowrap;
+}
+.pf-table tbody tr { transition: background 0.15s ease; }
+.pf-table tbody tr:hover { background: rgba(255,255,255,0.55); }
+.pf-hl { display: block; font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-3); margin-top: 2px; }
+.pf-pos { color: var(--gold-deep); font-weight: 800; }
+.pf-neg { color: var(--red); font-weight: 800; }
+.pf-flat { color: var(--text-3); font-weight: 700; }
+.pf-sym { font-family: var(--mono); font-weight: 700; font-size: 12.5px; }
+.pf-kind { padding: 2px 7px; border-radius: 5px; font-size: 10px; font-weight: 800; letter-spacing: 0.05em; }
+.pf-kind.eq { background: var(--up-dim); color: var(--gold-deep); }
+.pf-kind.mf { background: var(--info-dim); color: var(--info); }
+.rm-btn {
+  width: 28px; height: 28px;
+  border-radius: 8px; border: 1px solid var(--border);
+  background: var(--glass); color: var(--text-3);
+  display: inline-grid; place-items: center;
+  font-size: 13px; line-height: 1;
+  transition: transform 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.rm-btn:hover { transform: translateY(-2px); color: var(--red); border-color: rgba(176,58,46,0.4); background: rgba(176,58,46,0.08); }
+.pf-foot { padding: 12px 22px 16px; font-size: 11.5px; color: var(--text-3); display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
+.pf-foot .right { margin-left: auto; }
+
+/* ============================================================
+   ADD-CARD (watchlist empty state / trailing add tile)
+============================================================ */
+.add-card {
+  position: relative;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+  min-height: 200px;
+  border: 1.6px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: rgba(255, 253, 246, 0.35);
+  color: var(--text-2);
+  transition: transform 0.2s cubic-bezier(0.22, 0.9, 0.32, 1.2), box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+  animation: fadeUp 0.35s ease both;
+}
+.add-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lift); border-color: var(--gold); background: rgba(255,253,246,0.65); }
+.add-card .ac-plus {
+  width: 46px; height: 46px; border-radius: 14px;
+  display: grid; place-items: center;
+  background: linear-gradient(145deg, #e8c96a, #c9a227);
+  color: #3a2c05; box-shadow: inset 0 1px 0 rgba(255,255,255,0.5), 0 8px 20px -8px rgba(154,109,0,0.6);
+}
+.add-card b { font-size: 14px; color: var(--text-1); display: block; }
+.add-card-sub { display: block; font-size: 12px; color: var(--text-3); max-width: 260px; text-align: center; line-height: 1.5; }
+.add-card.slim { min-height: 96px; flex-direction: row; gap: 14px; padding: 0 22px; }
+.add-card.slim .ac-plus { width: 38px; height: 38px; border-radius: 11px; }
+.add-card.slim b { font-size: 13.5px; }
+.add-card.slim .add-card-sub { text-align: left; max-width: 380px; }
+
+/* watchlist card remove button */
+.card-rm {
+  position: absolute; top: 12px; right: 12px; z-index: 3;
+  width: 26px; height: 26px;
+  border-radius: 8px; border: 1px solid var(--border);
+  background: var(--glass); color: var(--text-3);
+  display: none; place-items: center;
+  font-size: 12px; line-height: 1;
+  transition: transform 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.card:hover .card-rm, .card-rm:focus-visible { display: grid; }
+.card-rm:hover { transform: translateY(-2px); color: var(--red); border-color: rgba(176,58,46,0.4); background: rgba(176,58,46,0.08); }
+
+/* ============================================================
    RESPONSIVE
 ============================================================ */
 @media (max-width: 1080px) {
@@ -659,6 +986,8 @@ input, select { font-family: inherit; }
   .scan-row { grid-template-columns: 96px minmax(0,1fr) 90px 100px; }
   .scan-row .col-type, .scan-row .col-note { display: none; }
   .scan-row.head .col-type, .scan-row.head .col-note { display: none; }
+  .pf-totals { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pf-table th { position: static; }
 }
 @media (max-width: 720px) {
   .brand-sub, #clock small { display: none; }
@@ -670,6 +999,15 @@ input, select { font-family: inherit; }
   .index-meta { gap: 18px; flex-wrap: wrap; }
   .scan-row { grid-template-columns: 86px minmax(0,1fr) 84px; }
   .scan-row .col-hi, .scan-row .col-dd { display: none; }
+  .acct-name { display: none; }
+  .acct-chip { padding-right: 8px; }
+  .form-row.two { grid-template-columns: 1fr; }
+  .pf-head .btn { width: 100%; }
+  .pf-totals { padding: 14px 16px; gap: 10px; }
+  .pf-kpi b { font-size: 16px; }
+  .modal-head h3 { font-size: 15.5px; }
+  .modal-body { padding: 15px 16px 18px; }
+  #clock { display: none; }
 }
 </style>
 </head>
@@ -695,6 +1033,30 @@ input, select { font-family: inherit; }
       <span id="status-text">—</span>
     </div>
     <div class="pill num" id="clock"><small>IST</small>&nbsp;<span id="clock-time">--:--:--</span></div>
+    <div class="acct" id="acct-area">
+      <button class="btn btn-primary hidden" id="signin-btn" title="Sign in to get your own watchlist, portfolio & alerts">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a8 8 0 0 1 16 0v1"/></svg>
+        Sign in
+      </button>
+      <div class="acct-menu hidden" id="acct-menu">
+        <button class="acct-chip" id="acct-chip" aria-haspopup="true" aria-expanded="false">
+          <span class="acct-avatar" id="acct-avatar">?</span>
+          <span class="acct-name" id="acct-name">—</span>
+          <svg class="acct-caret" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div class="acct-drop hidden" id="acct-drop">
+          <div class="acct-email" id="acct-email">—</div>
+          <button class="acct-item" id="acct-settings">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.01a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.01a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            Alert settings
+          </button>
+          <button class="acct-item danger" id="acct-signout">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>
+            Sign out
+          </button>
+        </div>
+      </div>
+    </div>
     <button class="btn" id="refresh-btn" title="Fetch fresh market data">
       <svg id="refresh-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
         <path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/>
@@ -758,6 +1120,10 @@ input, select { font-family: inherit; }
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>
         NIFTY 100 Scanner <span class="tab-count" id="count-scan">–</span>
       </button>
+      <button class="tab hidden" data-tab="portfolio" id="tab-portfolio">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+        My Portfolio <span class="tab-count" id="count-portfolio">0</span>
+      </button>
     </nav>
     <div class="controls-right" id="list-controls">
       <div class="search-box">
@@ -808,6 +1174,58 @@ input, select { font-family: inherit; }
       </div>
     </div>
   </section>
+
+  <!-- ================= MY PORTFOLIO ================= -->
+  <section id="view-portfolio" class="hidden">
+    <div class="portfolio-panel">
+      <div class="pf-head">
+        <div class="grow">
+          <div class="pf-title">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#b8860b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+            My Portfolio
+          </div>
+          <div class="pf-desc">Holdings valued with live NSE quotes &amp; AMFI NAVs — add lots manually or paste a broker CSV export (Zerodha / Groww / Upstox).</div>
+        </div>
+        <button class="btn" id="pf-csv-btn" title="Import a broker CSV export">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>
+          Import CSV
+        </button>
+        <button class="btn btn-primary" id="pf-add-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+          Add holding
+        </button>
+      </div>
+      <div class="pf-totals" id="pf-totals">
+        <div class="pf-kpi"><span>Invested</span><b id="pf-invested">—</b><small>total buy cost</small></div>
+        <div class="pf-kpi"><span>Current value</span><b id="pf-value">—</b><small id="pf-value-sub">live</small></div>
+        <div class="pf-kpi"><span>Day change</span><b id="pf-day">—</b><small>today's move</small></div>
+        <div class="pf-kpi"><span>Total P&amp;L</span><b id="pf-pnl">—</b><small>unrealised</small></div>
+      </div>
+      <div class="pf-table-wrap">
+        <table class="pf-table">
+          <thead>
+            <tr>
+              <th class="l">Holding</th>
+              <th>Qty</th>
+              <th>Buy ₹</th>
+              <th>Now ₹</th>
+              <th>Value ₹</th>
+              <th>Day %</th>
+              <th>P&amp;L</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="pf-body"></tbody>
+        </table>
+      </div>
+      <div class="pf-foot">
+        <span id="pf-asof">—</span>
+        <div class="right">
+          <span>Quotes delayed by up to one session</span>
+        </div>
+      </div>
+    </div>
+  </section>
 </main>
 
 <footer class="footer">
@@ -819,6 +1237,171 @@ input, select { font-family: inherit; }
     <span id="foot-updated">v2.0 — Moderate risk profile</span>
   </div>
 </footer>
+
+<!-- ================= MODALS ================= -->
+<div class="modal-backdrop hidden" id="modal-signin" role="dialog" aria-modal="true" aria-labelledby="signin-title">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="signin-title"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a8 8 0 0 1 16 0v1"/></svg><span id="signin-head-text">Sign in</span></h3>
+      <button class="modal-x" data-close aria-label="Close">✕</button>
+    </div>
+    <div class="modal-body">
+      <a class="gbtn hidden" id="gbtn" href="/login/google">
+        <svg width="17" height="17" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3l5.7-5.7C34.3 6.1 29.4 4 24 4 13 4 4 13 4 24s9 20 20 20 20-9 20-20c0-1.3-.1-2.6-.4-3.9z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.9 1.2 8 3l5.7-5.7C34.3 6.1 29.4 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C36.9 39.2 44 34 44 24c0-1.3-.1-2.6-.4-3.9z"/></svg>
+        Continue with Google
+      </a>
+      <div class="modal-err hidden" id="gbtn-err">Google Sign-In isn't configured on this deployment yet. Use email + password below, or set GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET.</div>
+      <div class="divider">or use email</div>
+      <div class="form-row" id="signup-name-row">
+        <div class="field"><label for="signin-name">Your name</label><input type="text" id="signin-name" placeholder="Jane Doe" autocomplete="name"></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label for="signin-email">Email</label><input type="email" id="signin-email" placeholder="you@example.com" autocomplete="email"></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label for="signin-pass">Password</label><input type="password" id="signin-pass" placeholder="At least 6 characters" autocomplete="current-password"></div>
+      </div>
+      <div class="modal-err" id="signin-err"></div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" id="signin-submit" style="width:100%">Sign in</button>
+      </div>
+      <p class="form-toggle" id="signin-toggle-wrap">
+        New here? <button id="signin-toggle">Create an account</button>
+      </p>
+      <p class="field-hint" style="text-align:center">Your watchlist, portfolio and alert settings stay private to your account.</p>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop hidden" id="modal-add" role="dialog" aria-modal="true" aria-labelledby="add-title">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="add-title"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>Add to my watchlist</h3>
+      <button class="modal-x" data-close aria-label="Close">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="modal-sub">Search any NSE stock or mutual fund scheme. New to a watchlist — nothing here touches anyone else's data.</p>
+      <div class="search-box-lg">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4-4"/></svg>
+        <input type="text" id="add-search" placeholder="e.g. RELIANCE, TCS, SBI Healthcare…" autocomplete="off">
+      </div>
+      <div class="sr-group" id="add-results"><div class="sr-empty">Start typing to search funds &amp; stocks.</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop hidden" id="modal-holding" role="dialog" aria-modal="true" aria-labelledby="holding-title">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="holding-title"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>Add holding</h3>
+      <button class="modal-x" data-close aria-label="Close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row two">
+        <div class="field">
+          <label for="holding-kind">Type</label>
+          <select id="holding-kind">
+            <option value="stocks">Stock (NSE)</option>
+            <option value="funds">Mutual fund (AMFI)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="holding-symbol">Symbol / scheme code</label>
+          <input type="text" id="holding-symbol" placeholder="RELIANCE or 119783">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label for="holding-name">Name <span style="text-transform:none;font-weight:600">(optional)</span></label><input type="text" id="holding-name" placeholder="Reliance Industries Ltd"></div>
+      </div>
+      <div class="form-row two">
+        <div class="field"><label for="holding-qty">Quantity</label><input type="number" id="holding-qty" min="0.0001" step="any" placeholder="10"></div>
+        <div class="field"><label for="holding-price">Buy price (₹)</label><input type="number" id="holding-price" min="0.01" step="any" placeholder="2400.00"></div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label for="holding-date">Buy date <span style="text-transform:none;font-weight:600">(optional)</span></label><input type="date" id="holding-date"></div>
+      </div>
+      <div class="modal-err" id="holding-err"></div>
+      <div class="modal-actions">
+        <button class="btn" data-close>Cancel</button>
+        <button class="btn btn-primary" id="holding-save">Add to portfolio</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop hidden" id="modal-settings" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="settings-title"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>Alert settings</h3>
+      <button class="modal-x" data-close aria-label="Close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="field">
+          <label for="set-risk">Risk profile</label>
+          <select id="set-risk">
+            <option value="conservative">Conservative — Tranche 1 (20%) · 30% · 50%</option>
+            <option value="moderate">Moderate — Tranche 1 (30%) · 30% · 40%</option>
+            <option value="aggressive">Aggressive — Tranche 1 (40%) · 35% · 25%</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <label for="set-threshold">Dip alert threshold (%)</label>
+          <input type="number" id="set-threshold" min="0.1" max="15" step="0.1" value="2.5">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <label for="set-freq">Alert frequency</label>
+          <select id="set-freq">
+            <option value="instant_and_eod">Instant + end-of-day digest</option>
+            <option value="eod_only">End-of-day digest only</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field"><label>Delivered to</label><div class="field-hint" id="set-email" style="font-size:13px;color:var(--text-1);font-weight:700">—</div></div>
+      </div>
+      <div class="modal-err" id="settings-err"></div>
+      <div class="modal-actions">
+        <button class="btn" id="set-test" style="margin-right:auto">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="3"/><path d="m2 7 10 6 10-6"/></svg>
+          Send Test Alert
+        </button>
+        <button class="btn" data-close>Cancel</button>
+        <button class="btn btn-primary" id="settings-save">Save settings</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop hidden" id="modal-csv" role="dialog" aria-modal="true" aria-labelledby="csv-title">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="csv-title"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>Import broker CSV</h3>
+      <button class="modal-x" data-close aria-label="Close">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="modal-sub">Paste the holdings export from your broker console — Zerodha, Groww, Upstox &amp; similar formats parse automatically. Duplicate lots are ignored.</p>
+      <div class="csv-zone">
+        <b>Paste CSV below</b> or <button class="btn" id="csv-file-btn" style="height:32px;padding:0 12px;font-size:12px">choose file…</button>
+        <input type="file" id="csv-file" accept=".csv,text/csv" class="hidden">
+      </div>
+      <div class="form-row">
+        <div class="field"><label for="csv-text">CSV text</label><textarea id="csv-text" rows="6" placeholder="Instrument,Qty,Average price,Date&#10;RELIANCE,10,2400.50,2026-01-15" style="width:100%;resize:vertical;border-radius:var(--radius-sm);border:1px solid var(--border);padding:10px 12px;font-family:var(--mono);font-size:12px;background:rgba(255,255,255,0.6);color:var(--text-1)"></textarea></div>
+      </div>
+      <div class="csv-preview" id="csv-preview"></div>
+      <div class="modal-err" id="csv-err"></div>
+      <div class="modal-actions">
+        <button class="btn" data-close>Cancel</button>
+        <button class="btn btn-primary" id="csv-import">Import holdings</button>
+      </div>
+      <p class="csv-note">Recognised columns: symbol / instrument / scrip, qty / quantity / units, average price / buy price / cost, date. Funds: paste the AMFI scheme code in the symbol column, or match by scheme name when the master list is reachable.</p>
+    </div>
+  </div>
+</div>
 
 <div class="toast-zone" id="toasts" aria-live="polite"></div>
 
@@ -1039,8 +1622,12 @@ function instrumentCard(item, kind) {
     STATE.sparkData[sparkKey] = { points: item.spark, dates: item.spark_dates, h: 46, title: isFund ? 'NAV' : item.symbol };
     sparkHtml = sparkShell(sparkKey, item.spark, 46, 'spark-sm');
   }
+  const rmBtn = AUTH.user
+    ? `<button class="card-rm" data-rm-kind="${kind}" data-rm-sym="${esc(isFund ? item.code : item.symbol)}" title="Remove from my watchlist" aria-label="Remove ${esc(isFund ? item.code : item.symbol)}">✕</button>`
+    : '';
   return `
   <article class="card" data-tone="${tone}">
+    ${rmBtn}
     <div class="card-top">
       <div class="card-id">
         <div class="symbol-chip">${esc(idLabel)}</div>
@@ -1089,11 +1676,25 @@ function filtered(items, kind) {
   return list;
 }
 
+function addCardHtml(kind, slim) {
+  return `
+  <button class="add-card ${slim ? 'slim' : ''}" data-add-wl="${kind}">
+    <span class="ac-plus"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg></span>
+    <span class="add-card-txt">
+      <b>${slim ? 'Add an instrument' : 'Your watchlist is empty'}</b>
+      <span class="add-card-sub">${slim
+        ? 'Search any NSE stock or mutual fund and track it here — private to your account.'
+        : 'Search any NSE stock or mutual fund scheme. What you add here is private to your account.'}</span>
+    </span>
+  </button>`;
+}
+
 function renderList(kind) {
   const view = $(`view-${kind}`);
   if (!STATE.data) { view.innerHTML = skeleton(); return; }
   const items = filtered(STATE.data[kind], kind);
   if (!items.length) {
+    if (AUTH.user) { view.innerHTML = addCardHtml(kind, false); return; }
     view.innerHTML = `
       <div class="empty">
         <div class="empty-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#a08d70" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4-4"/></svg></div>
@@ -1101,7 +1702,8 @@ function renderList(kind) {
       </div>`;
     return;
   }
-  view.innerHTML = items.map(i => instrumentCard(i, kind)).join('');
+  view.innerHTML = items.map(i => instrumentCard(i, kind)).join('')
+    + (AUTH.user ? addCardHtml(kind, true) : '');
 }
 
 function renderHero() {
@@ -1130,7 +1732,7 @@ function renderHero() {
   const sCorr = stocks.filter(s => s.drawdown_52w <= -8).length;
   const deepest = funds.length ? funds.reduce((a, b) => a.drawdown_52w < b.drawdown_52w ? a : b) : null;
   const best = funds.length ? funds.reduce((a, b) => a.recovery_upside_pct > b.recovery_upside_pct ? a : b) : null;
-  const cfg = d.config || {};
+  const cfg = d.settings || d.config || {};
 
   const kpi = (id, icon, iconBg, label, value, sub) => {
     $(id).innerHTML = `
@@ -1152,7 +1754,8 @@ function renderHero() {
       'Risk profile', esc((cfg.risk_profile || 'moderate').replace(/^./, c => c.toUpperCase())), 'staggered dip-buying plan');
 
   $('demo-banner').classList.toggle('hidden', !d.demo);
-  $('foot-updated').textContent = `Updated ${d.timestamp || ''} · Moderate risk profile`;
+  const riskLabel = (cfg.risk_profile || 'moderate').replace(/^./, c => c.toUpperCase());
+  $('foot-updated').textContent = `Updated ${d.timestamp || ''} · ${riskLabel} risk profile`;
 }
 
 function renderAll() {
@@ -1161,6 +1764,7 @@ function renderAll() {
   $('count-stocks').textContent = STATE.data?.stocks?.length ?? '–';
   renderList('funds');
   renderList('stocks');
+  renderPortfolio();
 }
 
 /* ============================ scanner ============================ */
@@ -1231,17 +1835,484 @@ function renderScan(err = false) {
       </div>`).join('')}`;
 }
 
+/* ============================ auth & account UI ============================ */
+const AUTH = { user: null, googleConfigured: false };
+
+async function api(path, opts = {}) {
+  const res = await fetch(path, {
+    headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) },
+    ...opts,
+  });
+  let json = null;
+  try { json = await res.json(); } catch (e) { /* non-JSON */ }
+  if (!res.ok && !json) throw new Error(`HTTP ${res.status}`);
+  return json;
+}
+
+function initialsOf(name, email) {
+  const src = (name || email || '?').trim();
+  const parts = src.split(/[\s@.]+/).filter(Boolean);
+  return (parts[0]?.[0] || '?') + (parts[1]?.[0] || '').toUpperCase();
+}
+
+function renderHeaderAuth() {
+  const signedIn = !!AUTH.user;
+  $('signin-btn').classList.toggle('hidden', signedIn);
+  $('acct-menu').classList.toggle('hidden', !signedIn);
+  $('tab-portfolio')?.classList.toggle('hidden', !signedIn);
+  if (signedIn) {
+    $('acct-avatar').textContent = initialsOf(AUTH.user.name, AUTH.user.email);
+    $('acct-name').textContent = AUTH.user.name || AUTH.user.email;
+    $('acct-email').textContent = AUTH.user.email;
+  } else {
+    $('acct-drop').classList.add('hidden');
+    $('acct-menu').classList.remove('open');
+  }
+}
+
+async function bootstrapAuth() {
+  if (EMBED) return;
+  try {
+    const json = await api('/api/me');
+    AUTH.user = json.user || null;
+    AUTH.googleConfigured = !!json.google_configured;
+  } catch (e) {
+    AUTH.user = null;
+  }
+  renderHeaderAuth();
+  const qs = new URLSearchParams(location.search);
+  const aerr = qs.get('auth_error');
+  if (aerr === 'google_failed') toast('err', 'Google sign-in failed', 'Could not complete the Google sign-in. Try again or use email + password.');
+  else if (aerr === 'google_missing_profile') toast('err', 'Google sign-in failed', 'Google did not return a profile. Try again or use email + password.');
+}
+
+/* ============================ modals ============================ */
+let _signinMode = 'login';
+
+function openModal(id) {
+  closeModals();
+  $(id).classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+  const input = $(id).querySelector('input');
+  if (input) setTimeout(() => input.focus(), 60);
+}
+
+function closeModals() {
+  document.querySelectorAll('.modal-backdrop').forEach(m => m.classList.add('hidden'));
+  document.body.style.overflow = '';
+}
+
+function showModalErr(id, msg) {
+  const el = $(id);
+  el.textContent = msg || '';
+  el.classList.toggle('show', !!msg);
+}
+
+document.addEventListener('click', (e) => {
+  const close = e.target.closest('[data-close]');
+  if (close) { e.preventDefault(); closeModals(); }
+  else if (e.target.classList.contains('modal-backdrop')) closeModals();
+  // account dropdown outside-click
+  const menu = $('acct-menu');
+  if (menu && !menu.classList.contains('hidden') && !e.target.closest('.acct')) {
+    $('acct-drop').classList.add('hidden');
+    menu.classList.remove('open');
+  }
+});
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModals(); });
+
+/* ---- sign in / sign up ---- */
+function setSigninMode(mode) {
+  _signinMode = mode;
+  const signup = mode === 'signup';
+  $('signup-name-row').style.display = signup ? '' : 'none';
+  $('signin-head-text').textContent = signup ? 'Create account' : 'Sign in';
+  $('signin-submit').textContent = signup ? 'Create my account' : 'Sign in';
+  $('signin-toggle-wrap').innerHTML = signup
+    ? 'Already have an account? <button id="signin-toggle">Sign in</button>'
+    : 'New here? <button id="signin-toggle">Create an account</button>';
+  $('signin-toggle').addEventListener('click', () => setSigninMode(signup ? 'login' : 'signup'));
+  showModalErr('signin-err', '');
+}
+
+async function submitSignin() {
+  const email = $('signin-email').value.trim();
+  const password = $('signin-pass').value;
+  const name = $('signin-name').value.trim();
+  const btn = $('signin-submit');
+  btn.disabled = true;
+  showModalErr('signin-err', '');
+  try {
+    const json = await api('/api/' + (_signinMode === 'signup' ? 'register' : 'login'),
+      { method: 'POST', body: JSON.stringify({ email, password, name }) });
+    if (!json.success) { showModalErr('signin-err', json.error || 'Something went wrong.'); return; }
+    AUTH.user = json.user;
+    AUTH.googleConfigured = !!json.google_configured;
+    closeModals();
+    renderHeaderAuth();
+    toast('ok', _signinMode === 'signup' ? 'Account created' : `Welcome back${AUTH.user.name ? ', ' + esc(AUTH.user.name) : ''}!`,
+      'Your private watchlist, portfolio & alerts are ready.');
+    await load(true);
+  } catch (e) {
+    showModalErr('signin-err', 'Backend did not respond. Is app.py running?');
+  } finally { btn.disabled = false; }
+}
+
+async function signOut() {
+  try { await api('/api/logout', { method: 'POST' }); } catch (e) { /* ignore */ }
+  AUTH.user = null;
+  renderHeaderAuth();
+  closeModals();
+  toast('ok', 'Signed out', 'You are back on the shared market view.');
+  await load(true);
+  if (STATE.tab === 'portfolio') switchTab('funds');
+}
+
+/* ============================ add-to-watchlist modal ============================ */
+let _addTimer = null;
+const _addedKeys = new Set();
+
+async function runAddSearch() {
+  const q = $('add-search').value.trim();
+  const box = $('add-results');
+  if (!q) { box.innerHTML = '<div class="sr-empty">Start typing to search funds &amp; stocks.</div>'; return; }
+  box.innerHTML = '<div class="sr-empty">Searching…</div>';
+  try {
+    const json = await api('/api/search?q=' + encodeURIComponent(q));
+    const groups = [];
+    if ((json.stocks || []).length) groups.push(['Stocks · NSE', json.stocks, 'eq']);
+    if ((json.funds || []).length) groups.push(['Mutual funds · AMFI', json.funds, 'mf']);
+    if (!groups.length) { box.innerHTML = '<div class="sr-empty">No matches — try the NSE symbol (e.g. RELIANCE, TCS) or a fund name / AMFI code.</div>'; return; }
+    box.innerHTML = groups.map(([title, items, kindCls]) => `
+      <div class="sr-group">
+        <span class="sr-group-title">${esc(title)}</span>
+        <div class="sr-list">
+          ${items.map(it => {
+            const key = `${it.kind}:${it.symbol}`;
+            const added = _addedKeys.has(key);
+            return `
+            <button class="sr-item" data-key="${esc(key)}" data-kind="${it.kind}" data-symbol="${esc(it.symbol)}" ${added ? 'disabled' : ''}>
+              <span class="sr-chip ${it.kind === 'funds' ? 'mf' : ''}">${esc(it.kind === 'funds' ? 'MF' : it.symbol.replace('.NS', '').slice(0, 4))}</span>
+              <span class="sr-names">
+                <span class="sr-name">${esc(it.name)}</span>
+                <span class="sr-meta">${esc(it.symbol)} · ${esc(it.category || (it.kind === 'funds' ? 'Mutual Fund' : 'NSE'))}</span>
+              </span>
+              <span class="sr-add">${added ? '✓' : '+'}</span>
+            </button>`;
+          }).join('')}
+        </div>
+      </div>`).join('');
+  } catch (e) {
+    box.innerHTML = '<div class="sr-empty">Search failed — check the backend connection.</div>';
+  }
+}
+
+async function addToWatchlist(kind, symbol, item) {
+  try {
+    const json = await api('/api/watchlist', {
+      method: 'POST',
+      body: JSON.stringify({ kind, symbol, name: item?.name || '', category: item?.category || '', sector: item?.sector || '' }),
+    });
+    if (!json.success) { toast('err', 'Could not add', json.error || ''); return; }
+    _addedKeys.add(`${kind}:${json.item.symbol}`);
+    toast('ok', 'Added to your watchlist', `${json.item.symbol} — it now appears in your ${kind === 'funds' ? 'Mutual Funds' : 'Blue-Chip Stocks'} tab.`);
+    runAddSearch();
+    load(true);
+  } catch (e) {
+    toast('err', 'Could not add', 'Backend did not respond.');
+  }
+}
+
+async function removeFromWatchlist(kind, symbol) {
+  try {
+    await api(`/api/watchlist/${kind}/${encodeURIComponent(symbol)}`, { method: 'DELETE' });
+    toast('ok', 'Removed from watchlist', symbol);
+    load(true);
+  } catch (e) {
+    toast('err', 'Could not remove', 'Backend did not respond.');
+  }
+}
+
+/* ============================ holdings + portfolio ============================ */
+function pnlClass(v) { return v > 0 ? 'pf-pos' : v < 0 ? 'pf-neg' : 'pf-flat'; }
+function signNum(v, digits = 2) { return v > 0 ? '+' + fmt(v) : fmt(v); }
+
+function renderPortfolio() {
+  const d = STATE.data;
+  const body = $('pf-body');
+  const holdings = (d && d.holdings) || [];
+  const t = (d && d.portfolio) || { invested: 0, current_value: 0, day_change: 0, day_pct: 0, pnl: 0, pnl_pct: 0 };
+  $('count-portfolio').textContent = holdings.length;
+
+  const invested = $('pf-invested'), value = $('pf-value'), day = $('pf-day'), pnl = $('pf-pnl');
+  invested.textContent = '₹' + fmt(t.invested);
+  value.textContent = '₹' + fmt(t.current_value);
+  $('pf-value-sub').textContent = t.live === false ? 'at buy price (no quote)' : 'live';
+  day.textContent = (t.day_change >= 0 ? '+' : '−') + '₹' + fmt(Math.abs(t.day_change));
+  day.className = pnlClass(t.day_change);
+  day.title = `${t.day_pct >= 0 ? '+' : ''}${t.day_pct.toFixed(2)}% today`;
+  pnl.textContent = (t.pnl >= 0 ? '+' : '−') + '₹' + fmt(Math.abs(t.pnl));
+  pnl.className = pnlClass(t.pnl);
+  pnl.title = `${t.pnl_pct >= 0 ? '+' : ''}${t.pnl_pct.toFixed(2)}%`;
+  $('pf-asof').textContent = d && d.portfolio_as_of ? `Valued ${esc(d.portfolio_as_of)} · ${holdings.length} lot${holdings.length === 1 ? '' : 's'}` : 'No holdings yet';
+
+  if (!holdings.length) {
+    body.innerHTML = `
+      <tr>
+        <td colspan="8">
+          <div class="empty" style="padding:38px 20px">
+            <div class="empty-ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#a08d70" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></div>
+            <b>No holdings yet</b>
+            <p>Add your first holding manually, or paste the CSV export from your broker console (Zerodha / Groww / Upstox).</p>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+              <button class="btn btn-primary" id="pf-add-btn-2"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>Add holding</button>
+              <button class="btn" id="pf-csv-btn-2"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>Import CSV</button>
+            </div>
+          </div>
+        </td>
+      </tr>`;
+    $('pf-add-btn-2')?.addEventListener('click', () => openHoldingModal());
+    $('pf-csv-btn-2')?.addEventListener('click', () => openModal('modal-csv'));
+    return;
+  }
+
+  body.innerHTML = holdings.map(h => {
+    const dayCell = h.live
+      ? `<span class="${pnlClass(h.day_change)}">${h.day_change >= 0 ? '+' : '−'}${fmt(Math.abs(h.day_change))}</span><span class="pf-hl">${h.day_pct >= 0 ? '+' : ''}${h.day_pct.toFixed(2)}%</span>`
+      : '<span class="pf-flat">—</span>';
+    return `
+    <tr data-hid="${h.id}">
+      <td class="l">
+        <span class="pf-sym">${esc(h.symbol)}</span>
+        <span class="pf-kind ${h.kind === 'funds' ? 'mf' : 'eq'}">${h.kind === 'funds' ? 'MF' : 'EQ'}</span>
+        <span class="pf-hl">${esc(h.name)}${h.buy_date ? ' · ' + esc(h.buy_date) : ''}</span>
+      </td>
+      <td>${fmt(h.qty)}</td>
+      <td>${fmt(h.buy_price)}</td>
+      <td>${h.live ? fmt(h.current_price) : '—'}</td>
+      <td>${fmt(h.current_value)}</td>
+      <td>${dayCell}</td>
+      <td><span class="${pnlClass(h.pnl)}">${h.pnl >= 0 ? '+' : '−'}₹${fmt(Math.abs(h.pnl))}</span><span class="pf-hl ${pnlClass(h.pnl)}">${h.pnl_pct >= 0 ? '+' : ''}${h.pnl_pct.toFixed(2)}%</span></td>
+      <td><button class="rm-btn" data-rm-holding="${h.id}" title="Remove holding">✕</button></td>
+    </tr>`;
+  }).join('');
+
+  body.querySelectorAll('[data-rm-holding]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = btn.dataset.rmHolding;
+      try {
+        await api(`/api/holdings/${id}`, { method: 'DELETE' });
+        toast('ok', 'Holding removed');
+        load(true);
+      } catch (e) { toast('err', 'Could not remove', 'Backend did not respond.'); }
+    });
+  });
+}
+
+function openHoldingModal(kind = 'stocks', symbol = '', name = '') {
+  $('holding-kind').value = kind;
+  $('holding-symbol').value = symbol.replace(/\.NS$/i, '');
+  $('holding-name').value = name || '';
+  $('holding-qty').value = '';
+  $('holding-price').value = '';
+  $('holding-date').value = new Date().toISOString().slice(0, 10);
+  showModalErr('holding-err', '');
+  openModal('modal-holding');
+}
+
+async function saveHolding() {
+  const payload = {
+    kind: $('holding-kind').value,
+    symbol: $('holding-symbol').value.trim(),
+    name: $('holding-name').value.trim(),
+    qty: $('holding-qty').value,
+    buy_price: $('holding-price').value,
+    buy_date: $('holding-date').value,
+  };
+  const btn = $('holding-save');
+  btn.disabled = true;
+  showModalErr('holding-err', '');
+  try {
+    const json = await api('/api/holdings', { method: 'POST', body: JSON.stringify(payload) });
+    if (!json.success) { showModalErr('holding-err', json.error || 'Could not save.'); return; }
+    closeModals();
+    toast('ok', 'Holding added', `${json.item.symbol} × ${json.item.qty} @ ₹${fmt(json.item.buy_price)}`);
+    await load(true);
+  } catch (e) { showModalErr('holding-err', 'Backend did not respond.'); }
+  finally { btn.disabled = false; }
+}
+
+/* ============================ CSV import ============================ */
+function parseCsvText(text) {
+  const rows = [];
+  let row = [], field = '', inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQ) {
+      if (c === '"') { if (text[i + 1] === '"') { field += '"'; i++; } else inQ = false; }
+      else field += c;
+    } else if (c === '"') inQ = true;
+    else if (c === ',') { row.push(field); field = ''; }
+    else if (c === '\n' || c === '\r') {
+      if (c === '\r' && text[i + 1] === '\n') i++;
+      row.push(field); field = '';
+      if (row.some(x => x.trim() !== '')) rows.push(row.map(x => x.trim()));
+      row = [];
+    } else field += c;
+  }
+  row.push(field);
+  if (row.some(x => x.trim() !== '')) rows.push(row.map(x => x.trim()));
+  return rows;
+}
+
+function mapCsvRows(rows) {
+  if (!rows.length) return { payload: [], errors: ['The CSV is empty.'] };
+  const header = rows[0].map(h => h.toLowerCase());
+  const find = (...pats) => {
+    const idx = header.findIndex(h => pats.some(p => h.includes(p)));
+    return idx;
+  };
+  const iSym = find('symbol', 'instrument', 'scrip', 'tradingsymbol', 'stock', 'ticker', 'isin', 'scheme');
+  const iName = find('name', 'company', 'scheme name');
+  const iQty = find('qty', 'quantity', 'units', 'shares', 'holding');
+  const iPrice = find('avg cost', 'average price', 'avg price', 'buy price', 'purchase price', 'cost price', 'price', 'cost', 'nav');
+  const iDate = find('date', 'trade date', 'buy date', 'settlement');
+
+  const symIdx = iSym >= 0 ? iSym : (iName >= 0 ? iName : 0);
+  const qtyIdx = iQty >= 0 ? iQty : 1;
+  const priceIdx = iPrice >= 0 ? iPrice : 2;
+  const dateIdx = iDate;
+  const nameIdx = (iName >= 0 && iName !== symIdx) ? iName : -1;
+
+  const payload = [], errors = [];
+  for (let r = 1; r < rows.length; r++) {
+    const row = rows[r];
+    const rawSym = (row[symIdx] || '').trim();
+    const qty = parseFloat(String(row[qtyIdx] || '').replace(/[₹,\s]/g, ''));
+    const price = parseFloat(String(row[priceIdx] || '').replace(/[₹,\s]/g, ''));
+    if (!rawSym) { errors.push(`Row ${r + 1}: missing symbol.`); continue; }
+    if (!isFinite(qty) || qty <= 0) { errors.push(`Row ${r + 1}: invalid quantity “${row[qtyIdx] || ''}”.`); continue; }
+    if (!isFinite(price) || price <= 0) { errors.push(`Row ${r + 1}: invalid price “${row[priceIdx] || ''}”.`); continue; }
+    let symbol = rawSym.replace(/^NSE:/i, '').replace(/^BSE:/i, '').trim();
+    const looksFund = /^\d{5,7}$/.test(symbol) || header.some(h => h.includes('scheme'));
+    const kind = looksFund ? 'funds' : 'stocks';
+    payload.push({
+      kind,
+      symbol,
+      name: nameIdx >= 0 ? (row[nameIdx] || '').trim() : '',
+      qty,
+      buy_price: price,
+      buy_date: dateIdx >= 0 && row[dateIdx] ? String(row[dateIdx]).slice(0, 10) : '',
+    });
+  }
+  return { payload, errors };
+}
+
+function renderCsvPreview() {
+  const box = $('csv-preview');
+  const text = $('csv-text').value;
+  showModalErr('csv-err', '');
+  if (!text.trim()) { box.innerHTML = ''; return; }
+  const { payload } = mapCsvRows(parseCsvText(text));
+  if (!payload.length) { box.innerHTML = '<p>No parseable rows yet — check the column names.</p>'; return; }
+  box.innerHTML = `
+    <p>Ready to import <b>${payload.length}</b> lot${payload.length === 1 ? '' : 's'} — duplicates will be skipped.</p>
+    <table>
+      <thead><tr><th>Symbol</th><th>Name</th><th class="num">Qty</th><th class="num">Buy ₹</th><th>Date</th><th>Kind</th></tr></thead>
+      <tbody>${payload.slice(0, 5).map(p => `
+        <tr><td>${esc(p.symbol)}</td><td>${esc(p.name || '—')}</td><td class="num">${fmt(p.qty)}</td><td class="num">${fmt(p.buy_price)}</td><td>${esc(p.buy_date || '—')}</td><td>${p.kind === 'funds' ? 'MF' : 'EQ'}</td></tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+async function importCsv() {
+  const text = $('csv-text').value;
+  const { payload, errors } = mapCsvRows(parseCsvText(text));
+  if (!payload.length) { showModalErr('csv-err', (errors[0] || 'Nothing to import.') + ' Paste a broker holdings export.'); return; }
+  const btn = $('csv-import');
+  btn.disabled = true;
+  showModalErr('csv-err', '');
+  try {
+    const json = await api('/api/holdings/import', { method: 'POST', body: JSON.stringify({ rows: payload }) });
+    if (!json.success) { showModalErr('csv-err', json.error || 'Import failed.'); return; }
+    const msgs = [];
+    if (json.imported) msgs.push(`${json.imported} holding${json.imported === 1 ? '' : 's'} imported`);
+    if (json.errors && json.errors.length) msgs.push(`${json.errors.length} row${json.errors.length === 1 ? '' : 's'} skipped`);
+    if (json.imported === 0) msgs.push('nothing new (duplicates ignored)');
+    closeModals();
+    toast('ok', 'CSV import complete', msgs.join(' · '));
+    $('csv-text').value = '';
+    await load(true);
+  } catch (e) { showModalErr('csv-err', 'Backend did not respond.'); }
+  finally { btn.disabled = false; }
+}
+
+/* ============================ settings ============================ */
+function populateSettings(s) {
+  $('set-risk').value = s.risk_profile || 'moderate';
+  $('set-threshold').value = s.dip_threshold ?? 2.5;
+  $('set-freq').value = s.alert_frequency || 'instant_and_eod';
+}
+
+function openSettingsModal() {
+  const s = (STATE.data && STATE.data.settings) || {};
+  populateSettings(s);
+  $('set-email').textContent = AUTH.user ? AUTH.user.email : '—';
+  showModalErr('settings-err', '');
+  openModal('modal-settings');
+}
+
+async function saveSettings() {
+  const btn = $('settings-save');
+  btn.disabled = true;
+  showModalErr('settings-err', '');
+  try {
+    const json = await api('/api/settings', {
+      method: 'POST',
+      body: JSON.stringify({
+        risk_profile: $('set-risk').value,
+        dip_threshold: parseFloat($('set-threshold').value),
+        alert_frequency: $('set-freq').value,
+      }),
+    });
+    if (!json.success) { showModalErr('settings-err', json.error || 'Could not save.'); return; }
+    if (STATE.data) STATE.data.settings = json.settings;
+    renderHero();
+    toast('ok', 'Settings saved', 'Your alerts now use the updated profile.');
+    load(true);
+  } catch (e) { showModalErr('settings-err', 'Backend did not respond.'); }
+  finally { btn.disabled = false; }
+}
+
+async function sendTestAlert() {
+  const btn = $('set-test');
+  btn.disabled = true;
+  showModalErr('settings-err', '');
+  try {
+    const json = await api('/api/send_test_alert', { method: 'POST' });
+    if (json.success) toast('ok', 'Alert sent', json.message);
+    else toast('err', 'Alert not sent', json.error || 'Check SMTP credentials (SENDER_EMAIL / SENDER_APP_PASSWORD).');
+  } catch (e) { toast('err', 'Alert failed', 'Backend did not respond.'); }
+  finally { btn.disabled = false; }
+}
+
 /* ============================ wiring ============================ */
-$('tabs').addEventListener('click', (e) => {
-  const tab = e.target.closest('.tab');
+function switchTab(tab) {
   if (!tab) return;
-  STATE.tab = tab.dataset.tab;
-  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t === tab));
-  ['funds', 'stocks', 'scanner'].forEach(v => {
+  STATE.tab = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t === $('tab-' + tab)));
+  ['funds', 'stocks', 'scanner', 'portfolio'].forEach(v => {
     const view = $(`view-${v}`);
     if (view) view.classList.toggle('hidden', v !== STATE.tab);
   });
-  $('list-controls').classList.toggle('hidden', STATE.tab === 'scanner');
+  const hideControls = STATE.tab === 'scanner' || STATE.tab === 'portfolio';
+  $('list-controls').classList.toggle('hidden', hideControls);
+}
+
+$('tabs').addEventListener('click', (e) => {
+  const tab = e.target.closest('.tab');
+  if (!tab) return;
+  switchTab(tab.dataset.tab);
 });
 
 $('search').addEventListener('input', (e) => { STATE.query = e.target.value.trim(); renderList('funds'); renderList('stocks'); });
@@ -1263,16 +2334,90 @@ $('alert-btn').addEventListener('click', async () => {
   } finally { btn.disabled = false; }
 });
 
+/* ---- account & modals ---- */
+$('signin-btn').addEventListener('click', () => {
+  setSigninMode('login');
+  $('signin-email').value = '';
+  $('signin-pass').value = '';
+  $('signin-name').value = '';
+  if (AUTH.googleConfigured) { $('gbtn').classList.remove('hidden'); $('gbtn-err').classList.add('hidden'); }
+  else { $('gbtn').classList.add('hidden'); $('gbtn-err').classList.remove('hidden'); }
+  showModalErr('signin-err', '');
+  openModal('modal-signin');
+});
+
+$('acct-chip').addEventListener('click', (e) => {
+  e.stopPropagation();
+  const menu = $('acct-menu');
+  const open = $('acct-drop').classList.toggle('hidden');
+  menu.classList.toggle('open', !open);
+  $('acct-chip').setAttribute('aria-expanded', !open);
+});
+$('acct-settings').addEventListener('click', () => { closeModals(); openSettingsModal(); });
+$('acct-signout').addEventListener('click', signOut);
+
+$('signin-toggle').addEventListener('click', () => setSigninMode('signup'));
+$('signin-submit').addEventListener('click', submitSignin);
+$('signin-email').addEventListener('keydown', (e) => { if (e.key === 'Enter') submitSignin(); });
+$('signin-pass').addEventListener('keydown', (e) => { if (e.key === 'Enter') submitSignin(); });
+
+/* ---- add-to-watchlist modal ---- */
+$('add-search').addEventListener('input', () => {
+  clearTimeout(_addTimer);
+  _addTimer = setTimeout(runAddSearch, 300);
+});
+document.addEventListener('click', async (e) => {
+  const item = e.target.closest('.sr-item');
+  if (item && !item.disabled) {
+    e.preventDefault();
+    const { kind, symbol } = item.dataset;
+    const nameEl = item.querySelector('.sr-name');
+    addToWatchlist(kind, symbol, { name: nameEl ? nameEl.textContent : '' });
+  }
+  const addCard = e.target.closest('[data-add-wl]');
+  if (addCard) { e.preventDefault(); _addedKeys.clear(); $('add-search').value = ''; $('add-results').innerHTML = '<div class="sr-empty">Start typing to search funds &amp; stocks.</div>'; openModal('modal-add'); }
+  const rmWl = e.target.closest('[data-rm-kind]');
+  if (rmWl) { e.preventDefault(); removeFromWatchlist(rmWl.dataset.rmKind, rmWl.dataset.rmSym); }
+});
+
+/* ---- holdings ---- */
+$('pf-add-btn').addEventListener('click', () => openHoldingModal());
+$('pf-csv-btn').addEventListener('click', () => { $('csv-text').value = ''; $('csv-preview').innerHTML = ''; showModalErr('csv-err', ''); openModal('modal-csv'); });
+$('holding-save').addEventListener('click', saveHolding);
+
+/* ---- CSV ---- */
+$('csv-text').addEventListener('input', renderCsvPreview);
+$('csv-file-btn').addEventListener('click', () => $('csv-file').click());
+$('csv-file').addEventListener('change', (e) => {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => { $('csv-text').value = String(reader.result || ''); renderCsvPreview(); };
+  reader.readAsText(file);
+});
+$('csv-import').addEventListener('click', importCsv);
+
+/* ---- settings ---- */
+$('settings-save').addEventListener('click', saveSettings);
+$('set-test').addEventListener('click', sendTestAlert);
+
 /* boot */
 if (EMBED) {
   // Embedded mode (Streamlit): data was injected, backend endpoints don't exist.
   $('refresh-btn').style.display = 'none';
   $('tab-scanner').remove();
   $('view-scanner').remove();
+  $('tab-portfolio')?.remove();
+  $('view-portfolio')?.remove();
+  $('acct-area').style.display = 'none';
+  $('gbtn')?.classList.add('hidden');
   $('foot-updated').textContent = 'Snapshot embedded by Streamlit — rerun the app to refresh';
 }
 renderList('funds'); renderList('stocks'); // skeletons
-load();
+(async () => {
+  await bootstrapAuth();
+  await load();
+})();
 if (!EMBED) setInterval(() => load(), 5 * 60 * 1000);
 </script>
 </body>

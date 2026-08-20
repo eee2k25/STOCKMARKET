@@ -210,6 +210,90 @@ def _action_plan(risk):
     </table>"""
 
 
+def _holdings_section(rep):
+    """Per-user portfolio snapshot for the digest (rendered when the report
+    carries holdings data)."""
+    holdings = rep.get("holdings") or []
+    totals = rep.get("portfolio_totals") or {}
+    if not holdings:
+        return ""
+    invested = float(totals.get("invested", 0) or 0)
+    current = float(totals.get("current_value", 0) or 0)
+    day_chg = float(totals.get("day_change", 0) or 0)
+    pnl = float(totals.get("pnl", 0) or 0)
+    pnl_pct = float(totals.get("pnl_pct", 0) or 0)
+    day_pct = float(totals.get("day_pct", 0) or 0)
+
+    def cell(label, value, color=INK, sub=""):
+        return f"""
+        <td width="25%" style="padding:0 5px">
+          <div style="background:{BG};border:1px solid {LINE};border-radius:12px;padding:13px 14px;text-align:center">
+            <div style="font-size:17px;font-weight:800;color:{color};font-variant-numeric:tabular-nums">₹{value}</div>
+            <div style="font-size:10.5px;font-weight:700;letter-spacing:.08em;color:{MUTED};text-transform:uppercase;margin-top:3px">
+              {label}{f'<div style="color:{color};font-size:11px;margin-top:2px">{sub}</div>' if sub else ''}
+            </div>
+          </div>
+        </td>"""
+
+    rows = []
+    for h in holdings:
+        pnl_v = float(h.get("pnl", 0) or 0)
+        pnl_p = float(h.get("pnl_pct", 0) or 0)
+        kind_tag = "MF" if h.get("kind") == "funds" else "EQ"
+        rows.append(f"""
+        <tr>
+          <td style="padding:11px 14px;border-bottom:1px solid {LINE};vertical-align:top">
+            <span style="display:block;font-size:13px;font-weight:700;color:{INK}">{_esc(h.get('name') or h.get('symbol'))}</span>
+            <span style="display:block;font-size:11px;color:{MUTED};margin-top:2px">{_esc(h.get('symbol'))} · {kind_tag} · {_esc(h.get('buy_date') or '—')}</span>
+          </td>
+          <td style="padding:11px 14px;border-bottom:1px solid {LINE};text-align:right;white-space:nowrap">
+            <span style="font-size:13px;font-weight:700;color:{INK}">{_inr(h.get('qty'))}</span>
+          </td>
+          <td style="padding:11px 14px;border-bottom:1px solid {LINE};text-align:right;white-space:nowrap">
+            <span style="font-size:13px;color:{BODY}">₹{_inr(h.get('buy_price'))}</span>
+          </td>
+          <td style="padding:11px 14px;border-bottom:1px solid {LINE};text-align:right;white-space:nowrap">
+            <span style="font-size:13px;color:{BODY}">₹{_inr(h.get('current_price'))}</span>
+          </td>
+          <td style="padding:11px 14px;border-bottom:1px solid {LINE};text-align:right;white-space:nowrap">
+            <span style="font-size:13px;font-weight:700;color:{INK}">₹{_inr(h.get('current_value'))}</span>
+          </td>
+          <td style="padding:11px 14px;border-bottom:1px solid {LINE};text-align:right;white-space:nowrap">
+            <span style="font-size:13px;font-weight:800;color:{UP if pnl_v >= 0 else DOWN}">
+              {f"+₹{_inr(abs(pnl_v))}" if pnl_v >= 0 else f"−₹{_inr(abs(pnl_v))}"}
+            </span><br>
+            <span style="font-size:11.5px;font-weight:700;color:{UP if pnl_v >= 0 else DOWN}">
+              {f"+{pnl_p:.2f}%" if pnl_v >= 0 else f"{pnl_p:.2f}%"}
+            </span>
+          </td>
+        </tr>""")
+
+    day_color = UP if day_chg >= 0 else DOWN
+    pnl_color = UP if pnl >= 0 else DOWN
+    return f"""
+    <h2 style="margin:26px 0 12px;font-size:15px;font-weight:800;color:{INK}">💼 Your portfolio ({len(holdings)} lot{'' if len(holdings) == 1 else 's'})</h2>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:separate;margin:0 0 16px">
+      <tr>
+        {cell("Invested", _inr(invested), INK)}
+        {cell("Current value", _inr(current), INK)}
+        {cell("Day change", _inr(abs(day_chg)), day_color, f"{'+' if day_chg >= 0 else '−'}{abs(day_pct):.2f}%")}
+        {cell("Total P&L", _inr(abs(pnl)), pnl_color, f"{'+' if pnl >= 0 else '−'}{abs(pnl_pct):.2f}%")}
+      </tr>
+    </table>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+           style="background:{CARD};border:1px solid {LINE};border-radius:14px;overflow:hidden;border-collapse:collapse">
+      <thead><tr>
+        <th style="padding:10px 14px;text-align:left;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:{MUTED};border-bottom:2px solid {LINE}">Holding</th>
+        <th style="padding:10px 14px;text-align:right;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:{MUTED};border-bottom:2px solid {LINE}">Qty</th>
+        <th style="padding:10px 14px;text-align:right;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:{MUTED};border-bottom:2px solid {LINE}">Buy ₹</th>
+        <th style="padding:10px 14px;text-align:right;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:{MUTED};border-bottom:2px solid {LINE}">Now ₹</th>
+        <th style="padding:10px 14px;text-align:right;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:{MUTED};border-bottom:2px solid {LINE}">Value ₹</th>
+        <th style="padding:10px 14px;text-align:right;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:{MUTED};border-bottom:2px solid {LINE}">P&L</th>
+      </tr></thead>
+      <tbody>{''.join(rows)}</tbody>
+    </table>"""
+
+
 def build_html_report(rep):
     """rep: dict from indian_market_monitor.generate_advisory_report()."""
     risk = rep.get("risk_profile", "moderate")
@@ -278,6 +362,8 @@ def build_html_report(rep):
       Calibrated for a <b>{_esc(risk)}</b> risk profile — never deploy the full tranche in one shot.
     </p>
     {_action_plan(risk)}
+
+    {_holdings_section(rep)}
 
     <!-- Detail tables -->
     <h2 style="margin:28px 0 12px;font-size:15px;font-weight:800;color:{INK}">💎 Mutual fund watchlist</h2>
