@@ -1,0 +1,4 @@
+__pycache__/
+*.pyc
+user_config.json
+email_preview.html

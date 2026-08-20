@@ -12,13 +12,17 @@ import json
 import datetime
 import yfinance as yf
 import requests
-import notifier
+
+try:
+    import notifier  # optional: alerts are dispatched only when a notifier module exists
+except ImportError:
+    notifier = None
 
 # Full Nifty 100 Universe (Top 100 Companies in India)
 NIFTY_100_STOCKS = [
     "RELIANCE.NS", "TCS.NS", "HDFCBANK.NS", "ICICIBANK.NS", "BHARTIARTL.NS",
     "INFY.NS", "ITC.NS", "SBIN.NS", "LT.NS", "HINDUNILVR.NS",
-    "BAJFINANCE.NS", "HCLTECH.NS", "MARUTI.NS", "SUNPHARMA.NS", "TMPV.NS",
+    "BAJFINANCE.NS", "HCLTECH.NS", "MARUTI.NS", "SUNPHARMA.NS", "TATAMOTORS.NS",
     "KOTAKBANK.NS", "TITAN.NS", "ONGC.NS", "NTPC.NS", "AXISBANK.NS",
     "POWERGRID.NS", "ADANIPORTS.NS", "ADANIENT.NS", "ULTRACEMCO.NS", "COALINDIA.NS",
     "BAJAJFINSV.NS", "ASIANPAINT.NS", "TATASTEEL.NS", "NESTLEIND.NS", "JSWSTEEL.NS",
@@ -88,7 +92,7 @@ def scan_nifty_100(threshold_pct=-2.0, recipient="meksmod1@gmail.com"):
                     opportunities.append(opp)
 
                     alert_key = f"{clean_sym}_{datetime.date.today()}"
-                    if alert_key not in ALERTS_SENT_TODAY:
+                    if notifier and alert_key not in ALERTS_SENT_TODAY:
                         notifier.dispatch_dip_alert(opp, recipient)
                         ALERTS_SENT_TODAY.add(alert_key)
 
