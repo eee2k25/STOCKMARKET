@@ -1,0 +1,34 @@
+# Render Blueprint — one-click deploy for MEK Stock Alert Pro (multi-user Flask app)
+# Deploy via: https://render.com/deploy?repo=https://github.com/eee2k25/STOCKMARKET
+# or "New + → Blueprint" in the Render dashboard.
+
+services:
+  - type: web
+    name: mek-stock-alert-pro
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    healthCheckPath: /
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      # Auto-generated on first deploy — signs session cookies. Keep it stable
+      # across redeploys so users stay logged in.
+      - key: SECRET_KEY
+        generateValue: true
+      # Optional — enables the "Continue with Google" button in the sign-in modal.
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      # Optional — enables per-user digest emails from "Send Test Alert".
+      - key: SENDER_EMAIL
+        sync: false
+      - key: SENDER_APP_PASSWORD
+        sync: false
+      # Optional — where to store the SQLite users.db file. Free-tier Render has
+      # an ephemeral filesystem, so this resets on redeploys. If you attach a
+      # Render persistent disk (paid), set this to the disk mount, e.g. /var/data.
+      - key: DATABASE_PATH
+        sync: false
