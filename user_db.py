@@ -23,7 +23,9 @@ import datetime
 from werkzeug.security import check_password_hash, generate_password_hash
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_FILE = os.path.join(BASE_DIR, "users.db")
+# DATABASE_PATH lets hosts like Render place the SQLite file on a persistent
+# disk (e.g. DATABASE_PATH=/var/data/users.db). Defaults to the repo directory.
+DB_FILE = os.getenv("DATABASE_PATH") or os.path.join(BASE_DIR, "users.db")
 
 # Google identities are stored in a *partial* unique index: NULL / empty
 # google_sub (email-signup accounts) may repeat freely, while real Google

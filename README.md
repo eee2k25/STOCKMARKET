@@ -86,11 +86,18 @@ Live NSE quotes / AMFI NAVs value each lot, with day change and P&L (₹ and %) 
 2. Go to **Settings > Secrets and variables > Actions** and add `SENDER_EMAIL` / `SENDER_APP_PASSWORD`.
 3. GitHub runs the scan every trading day at 4:00 PM IST and emails the digest (this uses the *global* default recipient config).
 
-### Option 2: Free Web App on Render (multi-user)
-1. Connect the repo to **Render.com → New Web Service**.
-2. Build command: `pip install -r requirements.txt`
-3. Start command: `gunicorn app:app`
-4. Add the env vars above (`SECRET_KEY`, and optionally `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `SENDER_EMAIL` / `SENDER_APP_PASSWORD`).
+### Option 2: Free Web App on Render (multi-user) — one click
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/eee2k25/STOCKMARKET)
+
+The button uses the [`render.yaml`](render.yaml) blueprint in this repo, which pre-configures:
+- **Start command** `gunicorn app:app`, **build** `pip install -r requirements.txt`, Python 3.11
+- An auto-generated `SECRET_KEY`
+- Optional fields for `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `SENDER_EMAIL` / `SENDER_APP_PASSWORD`
+
+**Or manually:** Render.com → **New → Web Service** → connect the repo → build `pip install -r requirements.txt` → start `gunicorn app:app` → add the env vars above.
+
+> **Note (free plan):** Render's free tier spins the app down after ~15 min idle (first visit after sleep takes ~30–60 s to cold-start) and has an **ephemeral filesystem**, so `users.db` resets on redeploys. To keep accounts permanently, attach a persistent disk and set `DATABASE_PATH=/var/data/users.db`.
 
 ### Option 3: Streamlit Community Cloud
 Shared single-profile dashboard — `streamlit run streamlit_app.py` with `requirements.txt`.
